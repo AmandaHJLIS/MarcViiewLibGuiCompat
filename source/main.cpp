@@ -6,6 +6,10 @@
 #include "drivers/ogc/OgcVideoDriver.h"
 #include "GuiTextRenderer.h"
 #include "filelist.h"
+#include "drivers/ogc/wii/WiiPlatform.h"
+
+WiiPlatform platformInstance;
+Platform* platform = &platformInstance;
 
 int main(int, char **)
 {
