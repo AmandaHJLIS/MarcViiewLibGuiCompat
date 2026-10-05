@@ -20,7 +20,7 @@
 #include <ogc/machine/processor.h>
 
 #include "drivers/ogc/OgcVideoDriver.h"
-#include "../../libgui/Gui.h"
+#include "libgui/Gui.h"
 
 #define DEFAULT_FIFO_SIZE (256 * 1024)
 
