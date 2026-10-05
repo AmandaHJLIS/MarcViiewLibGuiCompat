@@ -8,7 +8,7 @@
 #include <fat.h>
 #include <iso9660.h>
 
-#include "OgcFileSystemDriver.h"
+#include "drivers/ogc/OgcFileSystemDriver.h"
 
 const OgcFatSlotDescriptor * OgcFileSystemDriver::findFatSlot(int deviceId) const
 {
