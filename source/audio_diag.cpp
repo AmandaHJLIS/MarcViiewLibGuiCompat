@@ -66,7 +66,9 @@ int main(int, char **)
         break;
     }
 
-    DSP_Unhalt();
+    // ASND_Init() owns DSP_Init() and installs the ASND DSP task.
+    // Do not manually unhalt the DSP here: we want to test the normal
+    // libogc ASND lifecycle without adding an extra DSP state transition.
     ASND_Init();
     ASND_Pause(0);
 
@@ -89,10 +91,26 @@ int main(int, char **)
         result = ASND_SetVoice(voice, VOICE_STEREO_16BIT, 48000, 0,
                                tone, bytes, 110, 110, NULL);
 
-    // Give the voice time to play, then return to HBC.
-    u32 start = ASND_GetTime();
-    while (SYS_MainLoop() && (ASND_GetTime() - start) < 500)
-        WPAD_ScanPads();
+    // The result is deliberately rendered without depending on Dolphin's
+    // exception dialog. This lets us distinguish ASND_Init() reaching the
+    // caller from ASND_SetVoice() failing afterwards.
+    if (result == SND_OK) {
+        // Green = ASND_SetVoice succeeded.
+        GX_SetCopyClear((GXColor){40, 200, 40, 255}, 0x00ffffff);
+    } else if (voice < 0) {
+        // Red = no unused ASND voice was available.
+        GX_SetCopyClear((GXColor){220, 40, 40, 255}, 0x00ffffff);
+    } else {
+        // Yellow = ASND initialised, but ASND_SetVoice returned an error.
+        GX_SetCopyClear((GXColor){220, 200, 40, 255}, 0x00ffffff);
+    }
+    GX_DrawDone();
+    GX_CopyDisp(VIDEO_GetCurrentFramebuffer(), GX_TRUE);
+    VIDEO_Flush();
+
+    // Leave the result visible long enough to identify the stage before HBC.
+    for (int i = 0; i < 120; ++i)
+        VIDEO_WaitVSync();
 
     if (voice >= 0 && result == SND_OK)
         ASND_StopVoice(voice);
