@@ -1,68 +1,95 @@
 /****************************************************************************
- * MarcViiewLibGuiCompat
- * Minimal hardware startup diagnostic.
+ * MarcViiewLibGuiCompat - raw legacy libogc video/GX diagnostic
  *
- * This first-stage test intentionally avoids:
- *   - FreeType/font loading
- *   - language data
- *   - audio
- *   - Wii Remote/input initialisation
- *   - image decode scratch allocation
- *   - bundled libgui assets
- *
- * The purpose is to determine whether a real Wii can initialise the
- * platform/video path and render a tiny GUI without the larger startup
- * workload used by the full libgui test.
+ * This deliberately bypasses libgui, WiiPlatform, and all compatibility
+ * drivers. It tests only the legacy libogc VIDEO/GX path on real hardware.
  ***************************************************************************/
 
-#include "drivers/Platform.h"
-#include "drivers/ogc/wii/WiiPlatform.h"
-#include "libgui/Gui.h"
+#include <gccore.h>
+#include <ogcsys.h>
+#include <malloc.h>
+#include <stdlib.h>
+#include <string.h>
 
-static WiiPlatform platformInstance;
-Platform* platform = &platformInstance;
+#define DEFAULT_FIFO_SIZE (256 * 1024)
+
+static void *frameBuffer[2] = { nullptr, nullptr };
+static GXRModeObj *rmode = nullptr;
+static void *gp_fifo = nullptr;
+static u32 fb = 0;
+
+static void drawFrame()
+{
+    GX_SetViewport(0, 0, rmode->fbWidth, rmode->efbHeight, 0, 1);
+    GX_SetScissor(0, 0, rmode->fbWidth, rmode->efbHeight);
+
+    GX_SetCopyClear((GXColor){40, 40, 40, 255}, GX_MAX_Z24);
+    GX_SetZMode(GX_FALSE, GX_LEQUAL, GX_TRUE);
+    GX_SetColorUpdate(GX_TRUE);
+
+    GX_ClearVtxDesc();
+    GX_SetVtxDesc(GX_VA_POS, GX_DIRECT);
+    GX_SetVtxDesc(GX_VA_CLR0, GX_DIRECT);
+
+    GX_SetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
+    GX_SetVtxAttrFmt(GX_VTXFMT0, GX_VA_CLR0, GX_CLR_RGBA, GX_RGBA8, 0);
+
+    GX_Begin(GX_QUADS, GX_VTXFMT0, 4);
+
+    GX_Position3f32(-0.5f, -0.5f, 0.0f);
+    GX_Color4u8(255, 255, 255, 255);
+
+    GX_Position3f32( 0.5f, -0.5f, 0.0f);
+    GX_Color4u8(255, 255, 255, 255);
+
+    GX_Position3f32( 0.5f,  0.5f, 0.0f);
+    GX_Color4u8(255, 255, 255, 255);
+
+    GX_Position3f32(-0.5f,  0.5f, 0.0f);
+    GX_Color4u8(255, 255, 255, 255);
+
+    GX_End();
+
+    GX_DrawDone();
+    GX_CopyDisp(frameBuffer[fb], GX_TRUE);
+
+    VIDEO_SetNextFramebuffer(frameBuffer[fb]);
+    VIDEO_Flush();
+    VIDEO_WaitVSync();
+
+    if (rmode->viTVMode & VI_NON_INTERLACE)
+        VIDEO_WaitVSync();
+
+    fb ^= 1;
+}
 
 int main(int, char **)
 {
-    PlatformConfig config;
-    config.canvasWidth = 640;
-    config.canvasHeight = 480;
+    VIDEO_Init();
 
-    platform->init(config);
+    rmode = VIDEO_GetPreferredMode(nullptr);
 
-    GuiWindow mainWindow(
-        platform->getVideo()->getScreenWidth(),
-        platform->getVideo()->getScreenHeight());
+    frameBuffer[0] = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
+    frameBuffer[1] = MEM_K0_TO_K1(SYS_AllocateFramebuffer(rmode));
 
-    /*
-     * Use only solid GUI primitives here. No font renderer, external
-     * resources, decoder scratch buffer, audio, or input threads.
-     *
-     * If this reaches the screen on real hardware, platform/video/GUI
-     * startup is fundamentally working and we can add the heavier
-     * subsystems back one at a time.
-     */
-    GuiImage background(
-        platform->getVideo()->getScreenWidth(),
-        platform->getVideo()->getScreenHeight(),
-        (PixelColor){40, 40, 40, 255});
+    VIDEO_Configure(rmode);
+    VIDEO_SetNextFramebuffer(frameBuffer[fb]);
+    VIDEO_SetBlack(false);
+    VIDEO_Flush();
+    VIDEO_WaitVSync();
 
-    GuiImage marker(
-        240,
-        100,
-        (PixelColor){180, 180, 180, 255});
+    if (rmode->viTVMode & VI_NON_INTERLACE)
+        VIDEO_WaitVSync();
 
-    marker.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
-    marker.setPosition(0, 0);
+    gp_fifo = memalign(32, DEFAULT_FIFO_SIZE);
+    memset(gp_fifo, 0, DEFAULT_FIFO_SIZE);
+    GX_Init(gp_fifo, DEFAULT_FIFO_SIZE);
 
-    mainWindow.append(&background);
-    mainWindow.append(&marker);
+    GX_SetCullMode(GX_CULL_NONE);
+    GX_SetDispCopyGamma(GX_GM_1_0);
 
-    while (!platform->shouldExit())
-    {
-        mainWindow.draw();
-        platform->getVideo()->render();
-    }
+    while (true)
+        drawFrame();
 
-    platform->requestExit();
+    return 0;
 }
