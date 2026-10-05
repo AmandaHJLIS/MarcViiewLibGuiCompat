@@ -7,24 +7,74 @@
 #include <stdint.h>
 #include <string.h>
 
+static void video_init()
+{
+    VIDEO_Init();
+    GXRModeObj *vmode = VIDEO_GetPreferredMode(NULL);
+    void *xfb = MEM_K0_TO_K1(SYS_AllocateFramebuffer(vmode));
+    VIDEO_Configure(vmode);
+    VIDEO_SetNextFramebuffer(xfb);
+    VIDEO_SetBlack(FALSE);
+    VIDEO_Flush();
+    VIDEO_WaitVSync();
+
+    void *fifo = memalign(32, 256 * 1024);
+    memset(fifo, 0, 256 * 1024);
+    GX_Init(fifo, 256 * 1024);
+
+    GX_SetCopyClear((GXColor){40,40,40,255}, 0x00ffffff);
+    GX_SetViewport(0, 0, vmode->fbWidth, vmode->efbHeight, 0, 1);
+    GX_SetScissor(0, 0, vmode->fbWidth, vmode->efbHeight);
+    GX_SetZMode(GX_FALSE, GX_ALWAYS, GX_FALSE);
+    GX_SetColorUpdate(GX_TRUE);
+    GX_SetAlphaUpdate(GX_FALSE);
+    GX_SetBlendMode(GX_BM_BLEND, GX_BL_SRCALPHA, GX_BL_INVSRCALPHA, GX_LO_CLEAR);
+    GX_SetVtxDesc(GX_VA_POS, GX_DIRECT);
+    GX_SetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XY, GX_F32, 0);
+    GX_SetNumChans(1);
+    GX_SetNumTexGens(0);
+    GX_SetNumTevStages(1);
+    GX_SetTevOp(GX_TEVSTAGE0, GX_PASSCLR);
+    GX_SetVtxDesc(GX_VA_CLR0, GX_DIRECT);
+    GX_SetVtxAttrFmt(GX_VTXFMT0, GX_VA_CLR0, GX_CLR_RGBA, GX_RGBA8, 0);
+}
+
+static void frame()
+{
+    GX_Begin(GX_QUADS, GX_VTXFMT0, 4);
+    GX_Position2f32(20,20); GX_Color4u8(40,200,40,255);
+    GX_Position2f32(620,20); GX_Color4u8(40,200,40,255);
+    GX_Position2f32(620,460); GX_Color4u8(40,200,40,255);
+    GX_Position2f32(20,460); GX_Color4u8(40,200,40,255);
+    GX_End();
+    GX_DrawDone();
+    GX_CopyDisp(VIDEO_GetCurrentFramebuffer(), GX_TRUE);
+    VIDEO_Flush();
+    VIDEO_WaitVSync();
+}
+
 int main(int, char **)
 {
     WPAD_Init();
+    video_init();
 
-    // Raw legacy libogc diagnostic: deliberately bypass libgui's AudioDriver.
-    // This tells us whether the failure is inside ASND/libogc itself or in
-    // the libgui compatibility layer.
+    // Establish that the raw video/main-loop path is alive before touching ASND.
+    while (SYS_MainLoop())
+    {
+        WPAD_ScanPads();
+        frame();
+        break;
+    }
+
     DSP_Unhalt();
     ASND_Init();
     ASND_Pause(0);
 
-    const int frames = 4800; // 100 ms at 48 kHz
+    const int frames = 4800;
     const int bytes = frames * 2 * (int)sizeof(int16_t);
     int16_t *tone = (int16_t *)memalign(32, bytes);
-    if (!tone)
-        return 1;
+    if (!tone) return 1;
 
-    memset(tone, 0, bytes);
     for (int i = 0; i < frames; ++i)
     {
         int16_t sample = (int16_t)(12000.0f *
@@ -36,28 +86,16 @@ int main(int, char **)
     s32 voice = ASND_GetFirstUnusedVoice();
     s32 result = -1;
     if (voice >= 0)
-        result = ASND_SetVoice(
-            voice,
-            VOICE_STEREO_16BIT,
-            48000,
-            0,
-            tone,
-            bytes,
-            110,
-            110,
-            NULL);
+        result = ASND_SetVoice(voice, VOICE_STEREO_16BIT, 48000, 0,
+                               tone, bytes, 110, 110, NULL);
 
-    // Keep the buffer alive while ASND is using it.
-    while (SYS_MainLoop())
-    {
+    // Give the voice time to play, then return to HBC.
+    u32 start = ticks_to_millisecs(gettime());
+    while (SYS_MainLoop() && ticks_to_millisecs(gettime()) - start < 500)
         WPAD_ScanPads();
-        if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME)
-            break;
-    }
 
     if (voice >= 0 && result == SND_OK)
         ASND_StopVoice(voice);
-
     ASND_Pause(1);
     ASND_End();
     free(tone);
