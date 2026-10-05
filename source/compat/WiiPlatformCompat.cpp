@@ -13,7 +13,7 @@
  *   4 = + filesystem
  *   5 = full startup
  ***************************************************************************/
-#include "WiiPlatform.h"
+#include "drivers/ogc/wii/WiiPlatform.h"
 
 void WiiPlatform::init(const PlatformConfig& config)
 {
