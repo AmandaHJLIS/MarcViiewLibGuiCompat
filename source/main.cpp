@@ -111,7 +111,7 @@ int main(int, char **)
         if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME)
             break;
 
-        video.clearScreen({40, 40, 40, 255});
+        video->clearScreen({40, 40, 40, 255});
 
         // Keep the known-good rectangle as a reference.
         image->drawRectangle(
@@ -134,7 +134,7 @@ int main(int, char **)
         rightText.draw();
         wrappedText.draw();
 
-        video.render();
+        video->render();
     }
 
     image->destroyTexture(texture);
