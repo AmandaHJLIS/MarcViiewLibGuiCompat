@@ -6,7 +6,7 @@
  * implemented by OgcVideoDriverCompat.cpp for legacy libogc.
  ***************************************************************************/
 
-#include <stdlib.h>
+#include <stdlib.h>\n#include <gccore.h>
 #include <wiiuse/wpad.h>
 
 #include "drivers/ogc/OgcVideoDriver.h"
@@ -29,6 +29,20 @@ int main(int, char **)
 
         if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME)
             break;
+
+        // Draw a deliberately simple quad using the GX state initialized by
+        // OgcVideoDriver. The driver itself does not draw scene geometry;
+        // libgui normally does that through its renderers.
+        GX_Begin(GX_QUADS, GX_VTXFMT0, 4);
+        GX_Position3f32(0.0f, 0.0f, 0.0f);
+        GX_Color4u8(40, 40, 40, 255);
+        GX_Position3f32(640.0f, 0.0f, 0.0f);
+        GX_Color4u8(40, 40, 40, 255);
+        GX_Position3f32(640.0f, 480.0f, 0.0f);
+        GX_Color4u8(40, 40, 40, 255);
+        GX_Position3f32(0.0f, 480.0f, 0.0f);
+        GX_Color4u8(40, 40, 40, 255);
+        GX_End();
 
         video.render();
     }
