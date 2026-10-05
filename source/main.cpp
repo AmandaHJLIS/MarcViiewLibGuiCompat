@@ -93,16 +93,7 @@ int main(int, char **)
 
     void* texture = image->createTexture(textureWidth, textureHeight);
     image->loadTextureData(texture, rgba, textureWidth, textureHeight);
-
-    // Short 440 Hz PCM voice: this exercises OgcAudioDriver::playVoice()
-    // without introducing the streaming/decoder thread into this test.
-    static int16_t tone[4800 * 2];
-    for (int i = 0; i < 4800; ++i) {
-        int16_t sample = (int16_t)(12000.0f * sinf(2.0f * 3.14159265f * 440.0f * i / 48000.0f));
-        tone[i * 2] = sample;
-        tone[i * 2 + 1] = sample;
-    }
-    int32_t voice = audio->playVoice((const uint8_t*)tone, sizeof(tone), 110);
+    // Audio init is the isolated stage-2 test. Do not submit a voice yet.
 
     while (SYS_MainLoop())
     {
@@ -138,8 +129,6 @@ int main(int, char **)
     }
 
     image->destroyTexture(texture);
-    if (voice >= 0)
-        audio->stopVoice(voice);
     audio->shutdown();
 
     return 0;
