@@ -81,6 +81,7 @@ void OgcVideoDriver::init(int width, int height)
     resetVideoMenu();
 
     imageRenderer = new OgcImageRenderer();
+    glyphRenderer = new OgcGlyphRenderer();
 }
 
 void OgcVideoDriver::shutdown()
