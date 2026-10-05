@@ -18,9 +18,29 @@ int main(int, char **)
     OgcVideoDriver video;
     video.init(640, 480);
 
-    // Keep the scene deliberately simple. If this renders correctly on both
-    // Dolphin and real Wii hardware, the compatibility driver's video path
-    // is working independently of libgui's other drivers.
+    // Establish a minimal non-textured GX pipeline after driver initialization.
+    GX_SetViewport(0, 0, 640, 480, 0, 1);
+    GX_ClearVtxDesc();
+    GX_SetVtxDesc(GX_VA_POS, GX_DIRECT);
+    GX_SetVtxDesc(GX_VA_CLR0, GX_DIRECT);
+    GX_SetVtxAttrFmt(GX_VTXFMT0, GX_VA_POS, GX_POS_XYZ, GX_F32, 0);
+    GX_SetVtxAttrFmt(GX_VTXFMT0, GX_VA_CLR0, GX_CLR_RGBA, GX_RGBA8, 0);
+    GX_SetNumChans(1);
+    GX_SetNumTexGens(0);
+    GX_SetTevOp(GX_TEVSTAGE0, GX_PASSCLR);
+    GX_SetZMode(GX_FALSE, GX_LEQUAL, GX_FALSE);
+    GX_SetBlendMode(GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_CLEAR);
+    GX_SetColorUpdate(GX_TRUE);
+    GX_SetAlphaUpdate(GX_TRUE);
+
+    Mtx44 projection;
+    guOrtho(projection, 0, 480, 0, 640, 0, 300);
+    GX_LoadProjectionMtx(projection, GX_ORTHOGRAPHIC);
+
+    Mtx modelView;
+    guMtxIdentity(modelView);
+    GX_LoadPosMtxImm(modelView, GX_PNMTX0);
+    GX_SetCurrentMtx(GX_PNMTX0);
     video.clearScreen({40, 40, 40, 255});
 
     while (SYS_MainLoop())
