@@ -40,6 +40,7 @@ export FREETYPE_LIBS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config -
 
 CFLAGS = -g -O2 -Wall -Wextra $(MACHDEP) $(INCLUDE) $(FREETYPE_CFLAGS)
 LIBGUI_COMPAT_STAGE ?= 1
+RAW_VIDEO_TEST ?= 1
 
 # Startup diagnostic stages:
 # 1 = thread + video only
@@ -59,7 +60,11 @@ export VPATH := $(SOURCES) $(LIBGUI_DIR)/data/images $(LIBGUI_DIR)/data/fonts $(
 export DEPSDIR := $(CURDIR)/$(BUILD)
 
 CFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+ifeq ($(RAW_VIDEO_TEST),1)
+CPPFILES := main.cpp
+else
 CPPFILES := $(filter-out demo.cpp menu.cpp filebrowser.cpp OgcFileSystemDriver.cpp OgcSmbDriver.cpp OgcThreadDriver.cpp WiiFileSystemDriver.cpp WiiUsbMulti.cpp WiiPlatform.cpp,$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp))))
+endif
 sFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
 
