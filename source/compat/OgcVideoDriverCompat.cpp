@@ -109,6 +109,14 @@ void OgcVideoDriver::init(int width, int height)
 
     resetVideoMenu();
 
+    // Match the known-good libogc GX startup sequence: initialize the
+    // display-copy path and seed the first XFB before the first render.
+    GX_CopyDisp(xfb[0], GX_TRUE);
+    GX_DrawDone();
+    VIDEO_SetNextFramebuffer(xfb[0]);
+    VIDEO_Flush();
+    VIDEO_WaitVSync();
+
     // Renderer objects are intentionally omitted from this isolated test.
     // The test only validates video/GX initialization and presentation.
 }
@@ -192,11 +200,11 @@ void OgcVideoDriver::resetVideoMenu()
     GX_SetZMode(GX_FALSE, GX_LEQUAL, GX_TRUE);
 
     GX_SetNumChans(1);
-    GX_SetNumTexGens(1);
+    GX_SetNumTexGens(0);
     GX_SetTevOp(GX_TEVSTAGE0, GX_PASSCLR);
     GX_SetTevOrder(GX_TEVSTAGE0,
-                   GX_TEXCOORD0,
-                   GX_TEXMAP0,
+                   GX_TEXCOORDNULL,
+                   GX_TEXMAP_NULL,
                    GX_COLOR0A0);
 
     GX_SetTexCoordGen(GX_TEXCOORD0,
