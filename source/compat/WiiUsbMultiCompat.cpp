@@ -10,7 +10,7 @@
 #include <ogc/usb.h>
 #include <ogc/usbstorage.h>
 
-#include "WiiUsbMulti.h"
+#include "drivers/ogc/wii/WiiUsbMulti.h"
 #include "../../Mutex.h"
 
 // Not exported by ogc/usb.h - standard USB mass-storage class code (0x08),
