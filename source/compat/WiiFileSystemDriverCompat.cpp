@@ -16,7 +16,7 @@
 #include <di/di.h>
 
 #include "drivers/ogc/wii/WiiFileSystemDriver.h"
-#include "WiiUsbMulti.h"
+#include "drivers/ogc/wii/WiiUsbMulti.h"
 
 static DISC_INTERFACE * GetDiscSd()   { return const_cast<DISC_INTERFACE *>(&__io_wiisd); }
 static DISC_INTERFACE * GetDiscUsb1() { return WiiUsbMulti::getInterface(0); }
