@@ -2,11 +2,13 @@
 #include <wiiuse/wpad.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "drivers/ogc/OgcVideoDriver.h"
 #include "GuiTextRenderer.h"
 #include "filelist.h"
 #include "drivers/ogc/wii/WiiPlatform.h"
+#include "drivers/ogc/OgcAudioDriver.h"
 
 WiiPlatform platformInstance;
 Platform* platform = &platformInstance;
@@ -15,11 +17,22 @@ int main(int, char **)
 {
     WPAD_Init();
 
-    OgcVideoDriver video;
-    video.init(640, 480);
+    PlatformConfig config;
+    config.canvasWidth = 640;
+    config.canvasHeight = 480;
+    config.assetScaleX = 1.0f;
+    config.assetScaleY = 1.0f;
 
-    ImageRenderer* image = video.getImageRenderer();
-    GlyphRenderer* glyph = video.getGlyphRenderer();
+    // Exercise the real WiiPlatform compatibility composition root through
+    // stage 2: thread + video + audio. Input remains directly driven below
+    // for this controlled audio test.
+    platformInstance.init(config);
+
+    VideoDriver* video = platform->getVideo();
+    AudioDriver* audio = platform->getAudio();
+
+    ImageRenderer* image = video->getImageRenderer();
+    GlyphRenderer* glyph = video->getGlyphRenderer();
 
     // Now exercise the real libgui FreeType2 pipeline. The TTF is linked
     // from libgui/data/fonts and remains resident for the renderer lifetime.
@@ -81,6 +94,16 @@ int main(int, char **)
     void* texture = image->createTexture(textureWidth, textureHeight);
     image->loadTextureData(texture, rgba, textureWidth, textureHeight);
 
+    // Short 440 Hz PCM voice: this exercises OgcAudioDriver::playVoice()
+    // without introducing the streaming/decoder thread into this test.
+    static int16_t tone[4800 * 2];
+    for (int i = 0; i < 4800; ++i) {
+        int16_t sample = (int16_t)(12000.0f * sinf(2.0f * 3.14159265f * 440.0f * i / 48000.0f));
+        tone[i * 2] = sample;
+        tone[i * 2 + 1] = sample;
+    }
+    int32_t voice = audio->playVoice((const uint8_t*)tone, sizeof(tone), 110);
+
     while (SYS_MainLoop())
     {
         WPAD_ScanPads();
@@ -115,6 +138,9 @@ int main(int, char **)
     }
 
     image->destroyTexture(texture);
+    if (voice >= 0)
+        audio->stopVoice(voice);
+    audio->shutdown();
 
     return 0;
 }
