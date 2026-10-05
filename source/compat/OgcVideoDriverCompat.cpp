@@ -119,8 +119,18 @@ void OgcVideoDriver::render()
 
 void OgcVideoDriver::clearScreen(const PixelColor& color)
 {
-    GXColor background = {color.r, color.g, color.b, color.a};
-    GX_SetCopyClear(background, GX_MAX_Z24);
+    // Legacy libogc reliably presents a colour written to the EFB, while the
+    // copy-clear path is not producing the expected background on real Wii
+    // hardware in this compatibility configuration. Use the known-good GX
+    // rectangle path as the actual per-frame clear operation.
+    if (!imageRenderer)
+        return;
+
+    imageRenderer->drawRectangle(
+        0.0f, 0.0f,
+        static_cast<float>(screenWidth),
+        static_cast<float>(screenHeight),
+        color);
 }
 
 void OgcVideoDriver::resetVideoMenu()
