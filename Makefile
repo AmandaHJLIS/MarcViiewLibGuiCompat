@@ -32,7 +32,7 @@ SOURCES := \
 	$(LIBGUI_DIR)/source/drivers/ogc/wii \
 	$(LIBGUI_DIR)/source/libgui
 
-INCLUDES := $(LIBGUI_DIR)/source
+INCLUDES := $(LIBGUI_DIR)/source $(LIBGUI_DIR)/source/libgui
 LIBDIRS := $(PORTLIBS)
 
 export FREETYPE_CFLAGS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config --cflags freetype2`
