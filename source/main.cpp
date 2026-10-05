@@ -1,8 +1,9 @@
 /****************************************************************************
- * MarcViiewLibGuiCompat - raw legacy libogc video/GX diagnostic
+ * MarcViiewLibGuiCompat - raw legacy libogc video/GX + WPAD diagnostic
  *
- * Deliberately bypasses libgui and every compatibility driver. This is a
- * minimal devkitPro-style VIDEO/GX test for the legacy Wii toolchain.
+ * Deliberately bypasses libgui and every compatibility driver. This tests
+ * the known-good VIDEO/GX path, then adds only Wii Remote input and a clean
+ * exit path.
  ***************************************************************************/
 
 #include <gccore.h>
@@ -10,6 +11,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wiiuse/wpad.h>
 
 #define DEFAULT_FIFO_SIZE (256 * 1024)
 
@@ -83,6 +85,7 @@ static void drawFrame()
 int main(int, char **)
 {
     VIDEO_Init();
+    WPAD_Init();
 
     rmode = VIDEO_GetPreferredMode(nullptr);
 
@@ -104,7 +107,6 @@ int main(int, char **)
     GX_Init(gp_fifo, DEFAULT_FIFO_SIZE);
 
     GX_SetCopyClear((GXColor){40, 40, 40, 255}, 0x00ffffff);
-
     GX_SetViewport(0, 0, rmode->fbWidth, rmode->efbHeight, 0, 1);
 
     const f32 yscale =
@@ -131,12 +133,20 @@ int main(int, char **)
         GX_SetPixelFmt(GX_PF_RGB8_Z24, GX_ZC_LINEAR);
 
     GX_SetCullMode(GX_CULL_NONE);
-
     GX_CopyDisp(frameBuffer[fb], GX_TRUE);
     GX_SetDispCopyGamma(GX_GM_1_0);
 
-    while (true)
+    while (SYS_MainLoop())
+    {
+        WPAD_ScanPads();
+
+        const u32 pressed = WPAD_ButtonsDown(0);
+
+        if (pressed & WPAD_BUTTON_HOME)
+            exit(0);
+
         drawFrame();
+    }
 
     return 0;
 }
