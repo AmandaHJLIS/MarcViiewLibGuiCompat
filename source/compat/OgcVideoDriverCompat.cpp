@@ -8,7 +8,7 @@
  * The implementation is adapted from upstream dborth/libgui's
  * source/drivers/ogc/OgcVideoDriver.cpp, with legacy libogc-compatible
  * framebuffer handling and VIDEO_WaitVSync().
- ***************************************************************************/
+ ****************************************************************************/
 
 #include <gccore.h>
 #include <ogcsys.h>
@@ -41,15 +41,13 @@ void OgcVideoDriver::init(int width, int height)
 {
     VIDEO_Init();
 
-vmode = VIDEO_GetPreferredMode(nullptr);
-
+    vmode = VIDEO_GetPreferredMode(nullptr);
     VIDEO_Configure(vmode);
 
     xfb[0] = (uint32_t*)MEM_K0_TO_K1(SYS_AllocateFramebuffer(vmode));
     xfb[1] = (uint32_t*)MEM_K0_TO_K1(SYS_AllocateFramebuffer(vmode));
 
     VIDEO_SetNextFramebuffer(xfb[0]);
-
     VIDEO_SetBlack(FALSE);
     VIDEO_Flush();
     VIDEO_WaitVSync();
@@ -88,8 +86,13 @@ vmode = VIDEO_GetPreferredMode(nullptr);
     GX_CopyDisp(xfb[0], GX_TRUE);
     GX_SetDispCopyGamma(GX_GM_1_0);
 
-    // Renderer objects are intentionally omitted from this isolated test.
-    // The test only validates video/GX initialization and presentation.
+    // Establish the 2D state expected by the upstream image renderer.
+    resetVideoMenu();
+
+    // Only the image renderer is instantiated in this isolated test.
+    // Glyph rendering will be tested separately after rectangle rendering
+    // is known to be stable on legacy libogc hardware.
+    imageRenderer = new OgcImageRenderer();
 }
 
 void OgcVideoDriver::shutdown()
@@ -103,8 +106,6 @@ void OgcVideoDriver::shutdown()
 
 void OgcVideoDriver::render()
 {
-    whichfb ^= 1;
-
     GX_SetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);
     GX_SetColorUpdate(GX_TRUE);
 
@@ -214,7 +215,6 @@ void OgcVideoDriver::resetVideoMenu()
     GX_SetAlphaUpdate(GX_TRUE);
 }
 
-
 void* OgcImageRenderer::createTexture(int width, int height)
 {
     int padWidth = width + (4 - width % 4) % 4;
@@ -320,8 +320,7 @@ void OgcImageRenderer::drawRectangle(float x, float y, float width,
         {x, y, 0.0f},
         {x2, y, 0.0f},
         {x2, y2, 0.0f},
-        {x, y2, 0.0f},
-        {x, y, 0.0f}
+        {x, y2, 0.0f}
     };
 
     GX_Begin(GX_TRIANGLEFAN, GX_VTXFMT0, n);
