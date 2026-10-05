@@ -52,7 +52,7 @@ int main(int, char **)
         100,
         (PixelColor){180, 180, 180, 255});
 
-    marker.setAlignment(ALIGN_H::CENTRE, ALIGN_V::CENTRE);
+    marker.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
     marker.setPosition(0, 0);
 
     mainWindow.append(&background);
