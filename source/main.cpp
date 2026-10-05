@@ -2,15 +2,12 @@
 #include <wiiuse/wpad.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
-#include <malloc.h>
 
 #include "drivers/ogc/OgcVideoDriver.h"
 #include "GuiTextRenderer.h"
 #include "filelist.h"
 #include "drivers/ogc/wii/WiiPlatform.h"
-#include "drivers/ogc/OgcAudioDriver.h"
 
 WiiPlatform platformInstance;
 Platform* platform = &platformInstance;
@@ -25,13 +22,12 @@ int main(int, char **)
     config.assetScaleX = 1.0f;
     config.assetScaleY = 1.0f;
 
-    // Exercise the real WiiPlatform compatibility composition root through
-    // stage 2: thread + video + audio. Input remains directly driven below
-    // for this controlled audio test.
+    // Exercise the compatibility composition root through stage 1:
+    // thread + video only. Audio is intentionally excluded from the GUI
+    // compatibility target because the legacy ASND/DSP path is unstable.
     platformInstance.init(config);
 
     VideoDriver* video = platform->getVideo();
-    AudioDriver* audio = platform->getAudio();
 
     ImageRenderer* image = video->getImageRenderer();
     GlyphRenderer* glyph = video->getGlyphRenderer();
@@ -95,20 +91,6 @@ int main(int, char **)
 
     void* texture = image->createTexture(textureWidth, textureHeight);
     image->loadTextureData(texture, rgba, textureWidth, textureHeight);
-    // Short 440 Hz PCM voice: now that audio init is proven, exercise playVoice().
-    const int toneBytes = 4800 * 2 * (int)sizeof(int16_t);
-    int16_t* tone = (int16_t*)memalign(32, toneBytes);
-    memset(tone, 0, toneBytes);
-    for (int i = 0; i < 4800; ++i) {
-        int16_t sample = (int16_t)(12000.0f * sinf(2.0f * 3.14159265f * 440.0f * i / 48000.0f));
-        tone[i * 2] = sample;
-        tone[i * 2 + 1] = sample;
-    }
-
-    // libgui applications explicitly start the audio driver before submitting voices.
-    audio->start();
-    int32_t voice = audio->playVoice((const uint8_t*)tone, toneBytes, 110);
-
     while (SYS_MainLoop())
     {
         WPAD_ScanPads();
@@ -143,9 +125,7 @@ int main(int, char **)
     }
 
     image->destroyTexture(texture);
-    if (voice >= 0)
-        audio->stopVoice(voice);
-    free(tone);
 
+    platformInstance.shutdown();
     return 0;
 }
