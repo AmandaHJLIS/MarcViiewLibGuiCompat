@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
+#include <malloc.h>
+#include <asndlib.h>
 
 #include "drivers/ogc/OgcVideoDriver.h"
 #include "GuiTextRenderer.h"
@@ -94,13 +97,18 @@ int main(int, char **)
     void* texture = image->createTexture(textureWidth, textureHeight);
     image->loadTextureData(texture, rgba, textureWidth, textureHeight);
     // Short 440 Hz PCM voice: now that audio init is proven, exercise playVoice().
-    static int16_t tone[4800 * 2];
+    const int toneBytes = 4800 * 2 * (int)sizeof(int16_t);
+    int16_t* tone = (int16_t*)memalign(32, toneBytes);
+    memset(tone, 0, toneBytes);
     for (int i = 0; i < 4800; ++i) {
         int16_t sample = (int16_t)(12000.0f * sinf(2.0f * 3.14159265f * 440.0f * i / 48000.0f));
         tone[i * 2] = sample;
         tone[i * 2 + 1] = sample;
     }
-    int32_t voice = audio->playVoice((const uint8_t*)tone, sizeof(tone), 110);
+
+    // ASND starts paused; explicitly unpause before submitting the test voice.
+    ASND_Pause(0);
+    int32_t voice = audio->playVoice((const uint8_t*)tone, toneBytes, 110);
 
     while (SYS_MainLoop())
     {
@@ -138,6 +146,7 @@ int main(int, char **)
     image->destroyTexture(texture);
     if (voice >= 0)
         audio->stopVoice(voice);
+    free(tone);
 
     return 0;
 }
