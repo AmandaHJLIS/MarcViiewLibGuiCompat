@@ -41,48 +41,13 @@ void OgcVideoDriver::init(int width, int height)
 {
     VIDEO_Init();
 
-#ifdef HW_RVL
-    if (CONF_GetAspectRatio() == CONF_ASPECT_16_9 &&
-        (*(u32*)(0xCD8005A0) >> 16) == 0xCAFE)
-    {
-        write32(0xd8006a0, 0x30000004);
-        mask32(0xd8006a8, 0, 2);
-    }
-#endif
-
-    vmode = VIDEO_GetPreferredMode(nullptr);
-
-#ifdef HW_RVL
-    if (CONF_GetAspectRatio() == CONF_ASPECT_16_9)
-        vmode->viWidth = 678;
-    else
-        vmode->viWidth = 672;
-
-    if ((vmode->viTVMode >> 2) == VI_NTSC)
-    {
-        vmode->viXOrigin = (VI_MAX_WIDTH_NTSC - vmode->viWidth) / 2;
-        vmode->viYOrigin = (VI_MAX_HEIGHT_NTSC - vmode->viHeight) / 2;
-    }
-    else
-    {
-        vmode->viXOrigin = (VI_MAX_WIDTH_PAL - vmode->viWidth) / 2;
-        vmode->viYOrigin = (VI_MAX_HEIGHT_PAL - vmode->viHeight) / 2;
-    }
-#endif
+vmode = VIDEO_GetPreferredMode(nullptr);
 
     VIDEO_Configure(vmode);
 
-    xfb[0] = (uint32_t*)SYS_AllocateFramebuffer(vmode);
-    xfb[1] = (uint32_t*)SYS_AllocateFramebuffer(vmode);
+    xfb[0] = (uint32_t*)MEM_K0_TO_K1(SYS_AllocateFramebuffer(vmode));
+    xfb[1] = (uint32_t*)MEM_K0_TO_K1(SYS_AllocateFramebuffer(vmode));
 
-    DCInvalidateRange(xfb[0], VIDEO_GetFrameBufferSize(vmode));
-    DCInvalidateRange(xfb[1], VIDEO_GetFrameBufferSize(vmode));
-
-    xfb[0] = (uint32_t*)MEM_K0_TO_K1(xfb[0]);
-    xfb[1] = (uint32_t*)MEM_K0_TO_K1(xfb[1]);
-
-    VIDEO_ClearFrameBuffer(vmode, xfb[0], COLOR_BLACK);
-    VIDEO_ClearFrameBuffer(vmode, xfb[1], COLOR_BLACK);
     VIDEO_SetNextFramebuffer(xfb[0]);
 
     VIDEO_SetBlack(FALSE);
@@ -104,10 +69,24 @@ void OgcVideoDriver::init(int width, int height)
 
     GX_Init(gp_fifo, DEFAULT_FIFO_SIZE);
     GX_SetCopyClear(background, GX_MAX_Z24);
-    GX_SetDispCopyGamma(GX_GM_1_0);
-    GX_SetCullMode(GX_CULL_NONE);
 
-    resetVideoMenu();
+    float yscale = GX_GetYScaleFactor(vmode->efbHeight, vmode->xfbHeight);
+    uint32_t xfbHeight = GX_SetDispCopyYScale(yscale);
+
+    GX_SetViewport(0, 0, vmode->fbWidth, vmode->efbHeight, 0, 1);
+    GX_SetScissor(0, 0, vmode->fbWidth, vmode->efbHeight);
+    GX_SetDispCopySrc(0, 0, vmode->fbWidth, vmode->efbHeight);
+    GX_SetDispCopyDst(vmode->fbWidth, xfbHeight);
+    GX_SetCopyFilter(vmode->aa, vmode->sample_pattern, GX_TRUE, vmode->vfilter);
+    GX_SetFieldMode(vmode->field_rendering,
+                    ((vmode->viHeight == 2 * vmode->xfbHeight) ? GX_ENABLE : GX_DISABLE));
+    if (vmode->aa)
+        GX_SetPixelFmt(GX_PF_RGB565_Z16, GX_ZC_LINEAR);
+    else
+        GX_SetPixelFmt(GX_PF_RGB8_Z24, GX_ZC_LINEAR);
+    GX_SetCullMode(GX_CULL_NONE);
+    GX_CopyDisp(xfb[0], GX_TRUE);
+    GX_SetDispCopyGamma(GX_GM_1_0);
 
     // Renderer objects are intentionally omitted from this isolated test.
     // The test only validates video/GX initialization and presentation.
@@ -129,15 +108,14 @@ void OgcVideoDriver::render()
     GX_SetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);
     GX_SetColorUpdate(GX_TRUE);
 
-    // Match the established legacy libogc frame sequence: finish GX drawing,
-    // flip the framebuffer, then copy the EFB into that XFB.
+    // Match the known-working devkitPro frame sequence.
     GX_DrawDone();
+    whichfb ^= 1;
+    GX_SetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);
+    GX_SetColorUpdate(GX_TRUE);
     GX_CopyDisp(xfb[whichfb], GX_TRUE);
-
     VIDEO_SetNextFramebuffer(xfb[whichfb]);
     VIDEO_Flush();
-
-    // Legacy libogc does not provide libgui's VIDEO_WaitForFlush().
     VIDEO_WaitVSync();
 
     ++frameTimer;
