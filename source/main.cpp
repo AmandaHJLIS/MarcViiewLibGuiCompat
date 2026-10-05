@@ -28,7 +28,7 @@ int main(int, char **)
 
     // Exercise several GuiText features now that the basic widget is proven
     // on real Wii hardware: alignment, sizing, colour, scaling, and wrapping.
-    GuiElement textPanel;
+    GuiFrame textPanel;
     textPanel.setPosition(60, 300);
     textPanel.setSize(520, 150);
 
