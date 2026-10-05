@@ -2,7 +2,6 @@
 #include <wiiuse/wpad.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "drivers/ogc/OgcVideoDriver.h"
 #include "GuiTextRenderer.h"
@@ -16,21 +15,11 @@ int main(int, char **)
 {
     WPAD_Init();
 
-    PlatformConfig config;
-    config.canvasWidth = 640;
-    config.canvasHeight = 480;
-    config.assetScaleX = 1.0f;
-    config.assetScaleY = 1.0f;
+    OgcVideoDriver video;
+    video.init(640, 480);
 
-    // Exercise the compatibility composition root through stage 1:
-    // thread + video only. Audio is intentionally excluded from the GUI
-    // compatibility target because the legacy ASND/DSP path is unstable.
-    platformInstance.init(config);
-
-    VideoDriver* video = platform->getVideo();
-
-    ImageRenderer* image = video->getImageRenderer();
-    GlyphRenderer* glyph = video->getGlyphRenderer();
+    ImageRenderer* image = video.getImageRenderer();
+    GlyphRenderer* glyph = video.getGlyphRenderer();
 
     // Now exercise the real libgui FreeType2 pipeline. The TTF is linked
     // from libgui/data/fonts and remains resident for the renderer lifetime.
@@ -91,6 +80,7 @@ int main(int, char **)
 
     void* texture = image->createTexture(textureWidth, textureHeight);
     image->loadTextureData(texture, rgba, textureWidth, textureHeight);
+
     while (SYS_MainLoop())
     {
         WPAD_ScanPads();
@@ -98,7 +88,7 @@ int main(int, char **)
         if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME)
             break;
 
-        video->clearScreen({40, 40, 40, 255});
+        video.clearScreen({40, 40, 40, 255});
 
         // Keep the known-good rectangle as a reference.
         image->drawRectangle(
@@ -121,11 +111,10 @@ int main(int, char **)
         rightText.draw();
         wrappedText.draw();
 
-        video->render();
+        video.render();
     }
 
     image->destroyTexture(texture);
 
-    platformInstance.shutdown();
     return 0;
 }
