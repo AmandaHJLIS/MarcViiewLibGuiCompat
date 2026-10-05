@@ -126,8 +126,9 @@ MountResult OgcFileSystemDriver::mountFAT(int deviceId)
 	}
 	else if(!labelFetched[deviceId])
 	{
-		// Only ever looked up once per mount
-		fatGetVolumeLabel(mountPoint, volumeLabel[deviceId]);
+		// Legacy libogc does not provide fatGetVolumeLabel(). Leave the
+		// optional volume label empty; mounting itself is unaffected.
+		volumeLabel[deviceId][0] = '\\0';
 		labelFetched[deviceId] = true;
 	}
 
