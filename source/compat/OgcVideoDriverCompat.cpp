@@ -129,8 +129,9 @@ void OgcVideoDriver::resetVideoMenu()
     float yscale;
     uint32_t xfbHeight;
 
-    GXColor background = {0, 0, 0, 255};
-    GX_SetCopyClear(background, GX_MAX_Z24);
+    // resetVideoMenu restores rendering state, but must not reset the caller's
+    // per-frame clear colour back to black.
+    GX_SetCopyClear(g_copyClearColor, GX_MAX_Z24);
 
     yscale = GX_GetYScaleFactor(vmode->efbHeight, vmode->xfbHeight);
     xfbHeight = GX_SetDispCopyYScale(yscale);
