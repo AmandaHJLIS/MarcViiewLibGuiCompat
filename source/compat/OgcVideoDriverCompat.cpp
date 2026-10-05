@@ -109,14 +109,6 @@ void OgcVideoDriver::init(int width, int height)
 
     resetVideoMenu();
 
-    // Match the known-good libogc GX startup sequence: initialize the
-    // display-copy path and seed the first XFB before the first render.
-    GX_CopyDisp(xfb[0], GX_TRUE);
-    GX_DrawDone();
-    VIDEO_SetNextFramebuffer(xfb[0]);
-    VIDEO_Flush();
-    VIDEO_WaitVSync();
-
     // Renderer objects are intentionally omitted from this isolated test.
     // The test only validates video/GX initialization and presentation.
 }
@@ -137,12 +129,10 @@ void OgcVideoDriver::render()
     GX_SetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);
     GX_SetColorUpdate(GX_TRUE);
 
-    // Legacy libogc examples finish all GX drawing before copying the EFB to
-    // the XFB. Keep that ordering explicit; the upstream driver's ordering
-    // was not safe for this older GX/libogc combination.
+    // Match the established legacy libogc frame sequence: finish GX drawing,
+    // flip the framebuffer, then copy the EFB into that XFB.
     GX_DrawDone();
     GX_CopyDisp(xfb[whichfb], GX_TRUE);
-    GX_DrawDone();
 
     VIDEO_SetNextFramebuffer(xfb[whichfb]);
     VIDEO_Flush();
@@ -202,7 +192,7 @@ void OgcVideoDriver::resetVideoMenu()
     GX_SetVtxAttrFmt(GX_VTXFMT0, GX_VA_CLR0, GX_CLR_RGBA, GX_RGBA8, 0);
     GX_SetVtxAttrFmt(GX_VTXFMT0, GX_VA_TEX0, GX_TEX_ST, GX_F32, 0);
 
-    GX_SetZMode(GX_FALSE, GX_LEQUAL, GX_TRUE);
+    GX_SetZMode(GX_FALSE, GX_LEQUAL, GX_FALSE);
 
     GX_SetNumChans(1);
     GX_SetNumTexGens(0);
@@ -211,11 +201,6 @@ void OgcVideoDriver::resetVideoMenu()
                    GX_TEXCOORDNULL,
                    GX_TEXMAP_NULL,
                    GX_COLOR0A0);
-
-    GX_SetTexCoordGen(GX_TEXCOORD0,
-                      GX_TG_MTX2x4,
-                      GX_TG_TEX0,
-                      GX_IDENTITY);
 
     guMtxIdentity(GXmodelView2D);
     guMtxTransApply(GXmodelView2D,
