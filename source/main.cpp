@@ -8,6 +8,7 @@
 #include <cstdlib>
 
 #include "drivers/Platform.h"
+#include "drivers/ogc/wii/WiiPlatform.h"
 #include "drivers/InputController.h"
 #include "libgui/Gui.h"
 
