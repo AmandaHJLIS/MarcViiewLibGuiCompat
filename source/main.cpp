@@ -5,7 +5,6 @@
 #include <math.h>
 #include <string.h>
 #include <malloc.h>
-#include <asndlib.h>
 
 #include "drivers/ogc/OgcVideoDriver.h"
 #include "GuiTextRenderer.h"
@@ -106,8 +105,8 @@ int main(int, char **)
         tone[i * 2 + 1] = sample;
     }
 
-    // ASND starts paused; explicitly unpause before submitting the test voice.
-    ASND_Pause(0);
+    // libgui applications explicitly start the audio driver before submitting voices.
+    audio->start();
     int32_t voice = audio->playVoice((const uint8_t*)tone, toneBytes, 110);
 
     while (SYS_MainLoop())
