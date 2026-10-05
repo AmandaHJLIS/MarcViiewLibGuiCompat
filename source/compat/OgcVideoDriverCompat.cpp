@@ -109,8 +109,8 @@ void OgcVideoDriver::init(int width, int height)
 
     resetVideoMenu();
 
-    imageRenderer = new OgcImageRenderer();
-    glyphRenderer = new OgcGlyphRenderer();
+    // Renderer objects are intentionally omitted from this isolated test.
+    // The test only validates video/GX initialization and presentation.
 }
 
 void OgcVideoDriver::shutdown()
