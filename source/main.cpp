@@ -26,10 +26,35 @@ int main(int, char **)
     GuiTextRenderer text(font_ttf, font_ttf_size, glyph, 1.0f);
     fontSystem = &text;
 
-    // Test the actual GuiText widget on top of the now-proven renderer.
-    GuiText guiText("GuiText works!", 24, {255, 255, 255, 255});
-    guiText.setAlignment(ALIGN_H::LEFT, ALIGN_V::TOP);
-    guiText.setPosition(80, 340);
+    // Exercise several GuiText features now that the basic widget is proven
+    // on real Wii hardware: alignment, sizing, colour, scaling, and wrapping.
+    GuiElement textPanel;
+    textPanel.setPosition(60, 300);
+    textPanel.setSize(520, 150);
+
+    GuiText leftText("Left aligned", 20, {255, 255, 255, 255});
+    leftText.setParent(&textPanel);
+    leftText.setSize(520, 30);
+    leftText.setAlignment(ALIGN_H::LEFT, ALIGN_V::TOP);
+
+    GuiText centreText("Centre aligned", 24, {80, 220, 255, 255});
+    centreText.setParent(&textPanel);
+    centreText.setSize(520, 40);
+    centreText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
+    centreText.setPosition(0, 38);
+
+    GuiText rightText("Right aligned", 20, {255, 220, 80, 255});
+    rightText.setParent(&textPanel);
+    rightText.setSize(520, 30);
+    rightText.setAlignment(ALIGN_H::RIGHT, ALIGN_V::TOP);
+    rightText.setPosition(0, 88);
+
+    GuiText wrappedText("Wrapping is working too!", 18, {180, 255, 180, 255});
+    wrappedText.setParent(&textPanel);
+    wrappedText.setSize(520, 50);
+    wrappedText.setAlignment(ALIGN_H::LEFT, ALIGN_V::TOP);
+    wrappedText.setPosition(0, 112);
+    wrappedText.setWrap(true, 220);
 
     const int textureWidth = 32;
     const int textureHeight = 32;
@@ -75,34 +100,11 @@ int main(int, char **)
         // Test the glyph renderer's solid feature path separately.
         glyph->drawFeature(120, 400, 180, 40, {255, 220, 40, 255});
 
-        // Draw the actual GuiText widget, which calls fontSystem internally.
-        guiText.draw();
-
-        // Build a tiny synthetic grayscale glyph bitmap. This exercises the
-        // FreeType-style FT_Bitmap -> I4 conversion without loading FreeType
-        // or any real font yet.
-        const uint16_t glyphWidth = 16;
-        const uint16_t glyphHeight = 16;
-        uint8_t glyphPixels[glyphWidth * glyphHeight];
-
-        for (uint16_t y = 0; y < glyphHeight; ++y) {
-            for (uint16_t x = 0; x < glyphWidth; ++x) {
-                bool mark = (x == y) || (x + y == glyphWidth - 1);
-                glyphPixels[y * glyphWidth + x] = mark ? 255 : 0;
-            }
-        }
-
-        FT_Bitmap bitmap = {};
-        bitmap.width = glyphWidth;
-        bitmap.rows = glyphHeight;
-        bitmap.pitch = glyphWidth;
-        bitmap.buffer = glyphPixels;
-
-        void* glyphTexture = glyph->createTexture(glyphWidth, glyphHeight);
-        glyph->loadTextureData(glyphTexture, &bitmap);
-        glyph->drawQuad(glyphTexture, 340, 390, glyphWidth, glyphHeight,
-                        {255, 255, 255, 255});
-        glyph->destroyTexture(glyphTexture);
+        // Draw the GuiText feature suite.
+        leftText.draw();
+        centreText.draw();
+        rightText.draw();
+        wrappedText.draw();
 
         video.render();
     }
