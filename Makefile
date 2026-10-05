@@ -1,5 +1,5 @@
 #---------------------------------------------------------------------------------
-# MarcViiewLibGuiTest - libgui Wii integration test
+# MarcViiewLibGuiCompat - libgui Wii compatibility test
 #---------------------------------------------------------------------------------
 .SUFFIXES:
 
@@ -63,11 +63,11 @@ CPPFILES := $(filter-out demo.cpp menu.cpp filebrowser.cpp OgcFileSystemDriver.c
 sFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
 
-BINFILES := $(notdir $(wildcard $(LIBGUI_DIR)/data/images/*.png)) \
-	$(notdir $(wildcard $(LIBGUI_DIR)/data/fonts/*.ttf)) \
-	$(notdir $(wildcard $(LIBGUI_DIR)/data/sounds/*.ogg)) \
-	$(notdir $(wildcard $(LIBGUI_DIR)/data/sounds/*.pcm)) \
-	$(notdir $(wildcard $(LIBGUI_DIR)/data/lang/*.lang))
+# Bundled libgui assets are intentionally excluded from the stage-1 hardware
+# diagnostic. Add them back only when a later diagnostic stage explicitly
+# needs resource loading; this keeps the first hardware test as small as
+# possible.
+BINFILES :=
 
 ifeq ($(strip $(CPPFILES)),)
 export LD := $(CC)
