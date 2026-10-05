@@ -7,7 +7,7 @@ ifeq ($(strip $(DEVKITPPC)),)
 $(error "Please set DEVKITPPC in your environment. export DEVKITPPC=<path to>devkitPPC")
 endif
 
-include $(DEVKITPRO)/libogc2/wii_rules
+include $(DEVKITPPC)/wii_rules
 
 # libgui is kept outside this test repository so the test tracks the upstream
 # framework without copying its full source tree into MarcViiewLibGuiTest.
@@ -47,7 +47,7 @@ export VPATH := $(SOURCES) $(LIBGUI_DIR)/data/fonts $(LIBGUI_DIR)/data/lang
 export DEPSDIR := $(CURDIR)/$(BUILD)
 
 CFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-CPPFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+CPPFILES := $(filter-out demo.cpp menu.cpp filebrowser.cpp,$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp))))
 sFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
 
