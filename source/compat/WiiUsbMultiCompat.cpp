@@ -11,7 +11,7 @@
 #include <ogc/usbstorage.h>
 
 #include "drivers/ogc/wii/WiiUsbMulti.h"
-#include "../../Mutex.h"
+#include "Mutex.h"
 
 // Not exported by ogc/usb.h - standard USB mass-storage class code (0x08),
 // matches the private #define of the same name in libogc2's usbstorage.c.
