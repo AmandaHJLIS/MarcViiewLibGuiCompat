@@ -39,16 +39,15 @@ export FREETYPE_CFLAGS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config
 export FREETYPE_LIBS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config --libs freetype2`
 
 CFLAGS = -g -O2 -Wall -Wextra $(MACHDEP) $(INCLUDE) $(FREETYPE_CFLAGS)
-LIBGUI_COMPAT_STAGE ?= 3
+LIBGUI_COMPAT_STAGE ?= 2
 RAW_VIDEO_TEST ?= 0
 VIDEO_DRIVER_TEST ?= 1
 
 # Startup diagnostic stages:
 # 1 = thread + video only
-# 2 = + audio
-# 3 = + Wii/GameCube input
-# 4 = + Wii filesystem/USB/DVD
-# 5 = full upstream-style startup
+# 2 = + Wii/GameCube input
+# 3 = + Wii filesystem/USB/DVD
+# 4 = full startup with logging
 CXXFLAGS = $(CFLAGS) -std=c++11 -DVIDEO_WaitForFlush=VIDEO_WaitVSync -DLIBGUI_COMPAT_STAGE=$(LIBGUI_COMPAT_STAGE)
 LDFLAGS = -g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 
@@ -73,7 +72,7 @@ SFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
 
 # libgui's filelist.h expects these generated resource headers to exist.
 # Generate them for compilation, but do not link the bundled resource objects
-# into the minimal stage-1 hardware diagnostic.
+# into the minimal hardware diagnostic.
 ASSET_FILES := $(notdir $(wildcard $(LIBGUI_DIR)/data/images/*.png)) \
 	$(notdir $(wildcard $(LIBGUI_DIR)/data/fonts/*.ttf)) \
 	$(notdir $(wildcard $(LIBGUI_DIR)/data/sounds/*.ogg)) \
