@@ -136,6 +136,11 @@ void OgcVideoDriver::render()
 
     GX_SetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);
     GX_SetColorUpdate(GX_TRUE);
+
+    // Legacy libogc examples finish all GX drawing before copying the EFB to
+    // the XFB. Keep that ordering explicit; the upstream driver's ordering
+    // was not safe for this older GX/libogc combination.
+    GX_DrawDone();
     GX_CopyDisp(xfb[whichfb], GX_TRUE);
     GX_DrawDone();
 
