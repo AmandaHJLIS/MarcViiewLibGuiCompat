@@ -24,8 +24,8 @@ TARGET := $(notdir $(CURDIR))
 BUILD := build
 
 SOURCES := \
-	source \
-	source/compat \
+	$(PROJECT_DIR)/source \
+	$(PROJECT_DIR)/source/compat \
 	$(LIBGUI_DIR)/source \
 	$(LIBGUI_DIR)/source/drivers \
 	$(LIBGUI_DIR)/source/drivers/ogc \
