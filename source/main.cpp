@@ -39,6 +39,9 @@ int main(int, char **)
 
     Mtx modelView;
     guMtxIdentity(modelView);
+    // Match the coordinate convention used by libgui's 2D driver: geometry
+    // lives in front of the camera after a -50 translation.
+    guMtxTransApply(modelView, modelView, 0.0f, 0.0f, -50.0f);
     GX_LoadPosMtxImm(modelView, GX_PNMTX0);
     GX_SetCurrentMtx(GX_PNMTX0);
     video.clearScreen({40, 40, 40, 255});
