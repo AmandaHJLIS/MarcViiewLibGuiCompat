@@ -39,7 +39,7 @@ export FREETYPE_CFLAGS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config
 export FREETYPE_LIBS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config --libs freetype2`
 
 CFLAGS = -g -O2 -Wall -Wextra $(MACHDEP) $(INCLUDE) $(FREETYPE_CFLAGS)
-LIBGUI_COMPAT_STAGE ?= 1
+LIBGUI_COMPAT_STAGE ?= 3
 RAW_VIDEO_TEST ?= 0
 VIDEO_DRIVER_TEST ?= 1
 
@@ -64,7 +64,7 @@ CFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 ifeq ($(RAW_VIDEO_TEST),1)
 CPPFILES := main.cpp
 else ifeq ($(VIDEO_DRIVER_TEST),1)
-CPPFILES := main.cpp OgcVideoDriverCompat.cpp OgcGlyphRendererCompat.cpp GuiTextRenderer.cpp GuiText.cpp GuiElement.cpp GuiTextTranslator.cpp WiiPlatformCompat.cpp OgcThreadDriverCompat.cpp Thread.cpp Logger.cpp Mutex.cpp
+CPPFILES := main.cpp OgcVideoDriverCompat.cpp OgcGlyphRendererCompat.cpp OgcInputDriverCompat.cpp GuiTextRenderer.cpp GuiText.cpp GuiElement.cpp GuiTextTranslator.cpp GuiButton.cpp GuiTrigger.cpp InputController.cpp WiiPlatformCompat.cpp OgcThreadDriverCompat.cpp Thread.cpp Logger.cpp Mutex.cpp
 else
 CPPFILES := $(filter-out demo.cpp menu.cpp filebrowser.cpp OgcFileSystemDriver.cpp OgcSmbDriver.cpp OgcThreadDriver.cpp WiiFileSystemDriver.cpp WiiUsbMulti.cpp WiiPlatform.cpp,$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp))))
 endif
