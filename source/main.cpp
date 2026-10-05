@@ -59,6 +59,32 @@ int main(int, char **)
         // Test the glyph renderer's solid feature path separately.
         glyph->drawFeature(120, 400, 180, 40, {255, 220, 40, 255});
 
+        // Build a tiny synthetic grayscale glyph bitmap. This exercises the
+        // FreeType-style FT_Bitmap -> I4 conversion without loading FreeType
+        // or any real font yet.
+        const uint16_t glyphWidth = 16;
+        const uint16_t glyphHeight = 16;
+        uint8_t glyphPixels[glyphWidth * glyphHeight];
+
+        for (uint16_t y = 0; y < glyphHeight; ++y) {
+            for (uint16_t x = 0; x < glyphWidth; ++x) {
+                bool mark = (x == y) || (x + y == glyphWidth - 1);
+                glyphPixels[y * glyphWidth + x] = mark ? 255 : 0;
+            }
+        }
+
+        FT_Bitmap bitmap = {};
+        bitmap.width = glyphWidth;
+        bitmap.rows = glyphHeight;
+        bitmap.pitch = glyphWidth;
+        bitmap.buffer = glyphPixels;
+
+        void* glyphTexture = glyph->createTexture(glyphWidth, glyphHeight);
+        glyph->loadTextureData(glyphTexture, &bitmap);
+        glyph->drawQuad(glyphTexture, 340, 390, glyphWidth, glyphHeight,
+                        {255, 255, 255, 255});
+        glyph->destroyTexture(glyphTexture);
+
         video.render();
     }
 
