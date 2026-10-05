@@ -1,120 +1,147 @@
-#include <gccore.h>
-#include <wiiuse/wpad.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "drivers/ogc/OgcVideoDriver.h"
+#include "drivers/ogc/wii/WiiPlatform.h"
+#include "drivers/InputController.h"
+#include "GuiButton.h"
+#include "GuiTrigger.h"
 #include "GuiTextRenderer.h"
 #include "filelist.h"
-#include "drivers/ogc/wii/WiiPlatform.h"
 
 WiiPlatform platformInstance;
 Platform* platform = &platformInstance;
 
 int main(int, char **)
 {
-    WPAD_Init();
+    PlatformConfig config;
+    config.canvasWidth = 640;
+    config.canvasHeight = 480;
 
-    OgcVideoDriver video;
-    video.init(640, 480);
+    platform->init(config);
 
-    ImageRenderer* image = video.getImageRenderer();
-    GlyphRenderer* glyph = video.getGlyphRenderer();
+    ImageRenderer* image = platform->getVideo()->getImageRenderer();
+    GlyphRenderer* glyph = platform->getVideo()->getGlyphRenderer();
 
-    // Now exercise the real libgui FreeType2 pipeline. The TTF is linked
-    // from libgui/data/fonts and remains resident for the renderer lifetime.
     GuiTextRenderer text(font_ttf, font_ttf_size, glyph, 1.0f);
     fontSystem = &text;
 
-    // Exercise several GuiText features now that the basic widget is proven
-    // on real Wii hardware: alignment, sizing, colour, scaling, and wrapping.
     class TestContainer : public GuiElement {
     public:
         void draw() override {}
     };
 
     TestContainer textPanel;
-    textPanel.setPosition(60, 300);
-    textPanel.setSize(520, 150);
+    textPanel.setPosition(40, 35);
+    textPanel.setSize(560, 90);
 
-    GuiText leftText("Left aligned", 20, {255, 255, 255, 255});
-    leftText.setParent(&textPanel);
-    leftText.setSize(0, 0);
-    leftText.setAlignment(ALIGN_H::LEFT, ALIGN_V::TOP);
+    GuiText title("libgui input compatibility", 24, {255, 255, 255, 255});
+    title.setParent(&textPanel);
+    title.setSize(560, 40);
+    title.setAlignment(ALIGN_H::CENTRE, ALIGN_V::TOP);
 
-    GuiText centreText("Centre aligned", 24, {80, 220, 255, 255});
-    centreText.setParent(&textPanel);
-    centreText.setSize(0, 0);
-    centreText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
-    centreText.setPosition(0, 38);
+    GuiText instructions(
+        "Point at the button and press A, or press HOME to exit",
+        16,
+        {190, 220, 255, 255});
+    instructions.setParent(&textPanel);
+    instructions.setSize(560, 40);
+    instructions.setAlignment(ALIGN_H::CENTRE, ALIGN_V::TOP);
+    instructions.setPosition(0, 42);
 
-    GuiText rightText("Right aligned", 20, {255, 220, 80, 255});
-    rightText.setParent(&textPanel);
-    rightText.setSize(0, 0);
-    rightText.setAlignment(ALIGN_H::RIGHT, ALIGN_V::TOP);
-    rightText.setPosition(0, 88);
+    GuiButton testButton(300, 70);
+    testButton.setPosition(170, 170);
 
-    GuiText wrappedText("Wrapping is working too!", 18, {180, 255, 180, 255});
-    wrappedText.setParent(&textPanel);
-    wrappedText.setSize(220, 50);
-    wrappedText.setAlignment(ALIGN_H::LEFT, ALIGN_V::TOP);
-    wrappedText.setPosition(0, 112);
-    wrappedText.setWrap(true, 220);
+    GuiText buttonLabel("PRESS A", 24, {255, 255, 255, 255});
+    buttonLabel.setSize(300, 70);
+    buttonLabel.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
+    testButton.setLabel(&buttonLabel);
 
-    const int textureWidth = 32;
-    const int textureHeight = 32;
-    uint8_t rgba[textureWidth * textureHeight * 4];
+    // BUTTON_ONLY deliberately exercises the real GuiTrigger -> InputController
+    // path without requiring a separate GuiWindow/focus implementation.
+    GuiTrigger triggerA;
+    triggerA.setButtonOnlyTrigger(0, INPUT_BTN_A);
+    testButton.setTrigger(&triggerA);
 
-    // A deliberately simple test pattern: red background with a white cross.
-    for (int y = 0; y < textureHeight; ++y) {
-        for (int x = 0; x < textureWidth; ++x) {
-            const bool cross = (x >= 14 && x <= 17) || (y >= 14 && y <= 17);
-            uint8_t* pixel = &rgba[(y * textureWidth + x) * 4];
+    GuiText statusText("Waiting for input...", 18, {180, 255, 180, 255});
+    statusText.setPosition(80, 285);
+    statusText.setSize(480, 50);
+    statusText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
 
-            pixel[0] = cross ? 255 : 220;
-            pixel[1] = cross ? 255 : 40;
-            pixel[2] = cross ? 255 : 40;
-            pixel[3] = 255;
-        }
-    }
+    GuiText pointerText("Pointer: inactive", 16, {255, 220, 120, 255});
+    pointerText.setPosition(80, 345);
+    pointerText.setSize(480, 40);
+    pointerText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
 
-    void* texture = image->createTexture(textureWidth, textureHeight);
-    image->loadTextureData(texture, rgba, textureWidth, textureHeight);
+    GuiText buttonStateText("Button state: DEFAULT", 16, {200, 200, 200, 255});
+    buttonStateText.setPosition(80, 390);
+    buttonStateText.setSize(480, 40);
+    buttonStateText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
+
+    int clickCount = 0;
 
     while (SYS_MainLoop())
     {
-        WPAD_ScanPads();
+        platform->getInput()->update();
 
-        if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME)
+        InputController* pad = controller[0];
+
+        if (pad->isPressed(INPUT_BTN_HOME))
             break;
 
-        video.clearScreen({40, 40, 40, 255});
+        testButton.update(pad);
 
-        // Keep the known-good rectangle as a reference.
+        if (testButton.getState() == STATE::CLICKED)
+        {
+            ++clickCount;
+            statusText.setText("A button click received!");
+            testButton.resetState();
+        }
+
+        if (pad->getPadData().validPointer)
+            pointerText.setText("Pointer: active");
+        else
+            pointerText.setText("Pointer: inactive");
+
+        if (testButton.getState() == STATE::SELECTED)
+            buttonStateText.setText("Button state: SELECTED");
+        else
+            buttonStateText.setText("Button state: DEFAULT");
+
+        video:
+        platform->getVideo()->clearScreen({40, 40, 40, 255});
+
         image->drawRectangle(
-            80.0f, 120.0f, 220.0f, 240.0f,
-            {40, 160, 220, 255});
+            120.0f, 135.0f, 400.0f, 10.0f,
+            {50, 120, 180, 255});
 
-        // Draw the newly tested texture beside it.
-        image->drawTexture(
-            texture,
-            400.0f, 240.0f,
-            textureWidth, textureHeight,
-            0.0f, 8.0f, 8.0f, 255);
+        PixelColor buttonColour =
+            testButton.getState() == STATE::SELECTED
+                ? PixelColor{70, 170, 230, 255}
+                : PixelColor{50, 100, 150, 255};
 
-        // Test the glyph renderer's solid feature path separately.
-        glyph->drawFeature(120, 400, 180, 40, {255, 220, 40, 255});
+        image->drawRectangle(
+            170.0f, 170.0f, 300.0f, 70.0f,
+            buttonColour);
 
-        // Draw the GuiText feature suite.
-        leftText.draw();
-        centreText.draw();
-        rightText.draw();
-        wrappedText.draw();
+        title.draw();
+        instructions.draw();
+        testButton.draw();
+        statusText.draw();
+        pointerText.draw();
+        buttonStateText.draw();
 
-        video.render();
+        GuiText countText(
+            "Clicks: " + std::to_string(clickCount),
+            16,
+            {180, 255, 180, 255});
+        countText.setPosition(80, 435);
+        countText.setSize(480, 30);
+        countText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::TOP);
+        countText.draw();
+
+        platform->getVideo()->render();
     }
 
-    image->destroyTexture(texture);
-
+    platform->requestExit();
     return 0;
 }
