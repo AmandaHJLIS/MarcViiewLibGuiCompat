@@ -1,166 +1,108 @@
 #---------------------------------------------------------------------------------
-# Clear the implicit built in rules
+# MarcViiewLibGuiTest - libgui Wii integration test
 #---------------------------------------------------------------------------------
 .SUFFIXES:
-#---------------------------------------------------------------------------------
+
 ifeq ($(strip $(DEVKITPPC)),)
 $(error "Please set DEVKITPPC in your environment. export DEVKITPPC=<path to>devkitPPC")
 endif
 
-include $(DEVKITPPC)/wii_rules
+include $(DEVKITPRO)/libogc2/wii_rules
 
-#---------------------------------------------------------------------------------
-# TARGET is the name of the output
-# BUILD is the directory where object files & intermediate files will be placed
-# SOURCES is a list of directories containing source code
-# INCLUDES is a list of directories containing extra header files
-#---------------------------------------------------------------------------------
-TARGET		:=	$(notdir $(CURDIR))
-BUILD		:=	build
-SOURCES		:=	source
-DATA		:=	data
+# libgui is kept outside this test repository so the test tracks the upstream
+# framework without copying its full source tree into MarcViiewLibGuiTest.
+LIBGUI_DIR ?= $(CURDIR)/../libgui
 
-# MarcViiew headers + ViiewLib headers
-INCLUDES	:=	include ../viiewlib/include
-
-#---------------------------------------------------------------------------------
-# options for code generation
-#---------------------------------------------------------------------------------
-
-CFLAGS		=	-g -O2 -Wall $(MACHDEP) $(INCLUDE)
-CXXFLAGS	=	$(CFLAGS)
-
-LDFLAGS		=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map
-
-#---------------------------------------------------------------------------------
-# any extra libraries we wish to link with the project
-#---------------------------------------------------------------------------------
-
-LIBS		:=	-lviiewlib_wii -lwiiuse -lbte -lfat -logc -lm
-
-#---------------------------------------------------------------------------------
-# list of directories containing libraries
-#---------------------------------------------------------------------------------
-
-LIBDIRS	:=
-
-#---------------------------------------------------------------------------------
-# no real need to edit anything past this point unless you need to add additional
-# rules for different file extensions
-#---------------------------------------------------------------------------------
-
-ifneq ($(BUILD),$(notdir $(CURDIR)))
-#---------------------------------------------------------------------------------
-
-export OUTPUT	:=	$(CURDIR)/$(TARGET)
-
-export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-					$(foreach dir,$(DATA),$(CURDIR)/$(dir))
-
-export DEPSDIR	:=	$(CURDIR)/$(BUILD)
-
-#---------------------------------------------------------------------------------
-# automatically build a list of object files for our project
-#---------------------------------------------------------------------------------
-
-CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
-sFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
-SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
-BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
-
-#---------------------------------------------------------------------------------
-# use CXX for linking C++ projects, CC for standard C
-#---------------------------------------------------------------------------------
-
-ifeq ($(strip $(CPPFILES)),)
-	export LD	:=	$(CC)
-else
-	export LD	:=	$(CXX)
+ifeq ($(wildcard $(LIBGUI_DIR)/source/libgui/Gui.h),)
+$(error "libgui not found at $(LIBGUI_DIR). Clone dborth/libgui beside this repository or set LIBGUI_DIR=/path/to/libgui")
 endif
 
-export OFILES_BIN		:=	$(addsuffix .o,$(BINFILES))
-export OFILES_SOURCES	:=	$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(sFILES:.s=.o) $(SFILES:.S=.o)
-export OFILES			:=	$(OFILES_BIN) $(OFILES_SOURCES)
+TARGET := $(notdir $(CURDIR))
+BUILD := build
 
+SOURCES := \
+	source \
+	$(LIBGUI_DIR)/source \
+	$(LIBGUI_DIR)/source/drivers \
+	$(LIBGUI_DIR)/source/drivers/ogc \
+	$(LIBGUI_DIR)/source/drivers/ogc/wii \
+	$(LIBGUI_DIR)/source/libgui
+
+INCLUDES := $(LIBGUI_DIR)/source
+LIBDIRS := $(PORTLIBS)
+
+export FREETYPE_CFLAGS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config --cflags freetype2`
+export FREETYPE_LIBS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config --libs freetype2`
+
+CFLAGS = -g -O2 -Wall -Wextra $(MACHDEP) $(INCLUDE) $(FREETYPE_CFLAGS)
+CXXFLAGS = $(CFLAGS) -std=c++11
+LDFLAGS = -g $(MACHDEP) -Wl,-Map,$(notdir $@).map
+
+LIBS := -ldi -liso9660 -lsmb2 -lpng -lz -lfat -lwiiuse -lbte -lasnd -logc -lvorbisidec -logg $(FREETYPE_LIBS)
+
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+
+export OUTPUT := $(CURDIR)/$(TARGET)
+export VPATH := $(SOURCES) $(LIBGUI_DIR)/data/fonts $(LIBGUI_DIR)/data/lang
+export DEPSDIR := $(CURDIR)/$(BUILD)
+
+CFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CPPFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+sFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+SFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
+
+BINFILES := font.ttf en.lang
+
+ifeq ($(strip $(CPPFILES)),)
+export LD := $(CC)
+else
+export LD := $(CXX)
+endif
+
+export OFILES_BIN := $(addsuffix .o,$(BINFILES))
+export OFILES_SOURCES := $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(sFILES:.s=.o) $(SFILES:.S=.o)
+export OFILES := $(OFILES_BIN) $(OFILES_SOURCES)
 export HFILES := $(addsuffix .h,$(subst .,_,$(BINFILES)))
 
-#---------------------------------------------------------------------------------
-# build a list of include paths
-#
-# Use -I rather than -iquote so that both:
-#
-#     #include "marc_encoder.h"
-#
-# and:
-#
-#     #include <viiewlib/marc.h>
-#
-# resolve correctly.
-#---------------------------------------------------------------------------------
+export INCLUDE := $(foreach dir,$(INCLUDES),-I$(dir)) \
+	$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+	-I$(CURDIR)/$(BUILD) \
+	-I$(LIBOGC_INC)
 
-export INCLUDE	:=	$(foreach dir,$(INCLUDES), -I$(CURDIR)/$(dir)) \
-					$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-					-I$(CURDIR)/$(BUILD) \
-					-I$(LIBOGC_INC)
+export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib) -L$(LIBOGC_LIB)
 
-#---------------------------------------------------------------------------------
-# build a list of library paths
-#---------------------------------------------------------------------------------
-
-export LIBPATHS	:=	-L$(LIBOGC_LIB) \
-					-L$(CURDIR)/../viiewlib \
-					$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
-
-#---------------------------------------------------------------------------------
-
-export OUTPUT	:=	$(CURDIR)/$(TARGET)
+export OUTPUT := $(CURDIR)/$(TARGET)
 
 .PHONY: $(BUILD) clean run
-
-#---------------------------------------------------------------------------------
 
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
-#---------------------------------------------------------------------------------
-
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).dol
 
-#---------------------------------------------------------------------------------
-
 run:
 	wiiload $(TARGET).dol
 
-#---------------------------------------------------------------------------------
-
 else
 
-DEPENDS	:=	$(OFILES:.o=.d)
-
-#---------------------------------------------------------------------------------
-# main targets
-#---------------------------------------------------------------------------------
+DEPENDS := $(OFILES:.o=.d)
 
 $(OUTPUT).dol: $(OUTPUT).elf
 $(OUTPUT).elf: $(OFILES)
 
-$(OFILES_SOURCES) : $(HFILES)
+$(OFILES_SOURCES): $(HFILES)
 
-#---------------------------------------------------------------------------------
-# This rule links in binary data with the .jpg extension
-#---------------------------------------------------------------------------------
+%.ttf.o %_ttf.h : $(LIBGUI_DIR)/data/fonts/%.ttf
+	@echo $(notdir $<)
+	$(bin2o)
 
-%.jpg.o	%_jpg.h :	%.jpg
-#---------------------------------------------------------------------------------
+%.lang.o %_lang.h : $(LIBGUI_DIR)/data/lang/%.lang
 	@echo $(notdir $<)
 	$(bin2o)
 
 -include $(DEPENDS)
 
-#---------------------------------------------------------------------------------
 endif
-#---------------------------------------------------------------------------------
