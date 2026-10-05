@@ -25,6 +25,7 @@ BUILD := build
 
 SOURCES := \
 	source \
+	source/compat \
 	$(LIBGUI_DIR)/source \
 	$(LIBGUI_DIR)/source/drivers \
 	$(LIBGUI_DIR)/source/drivers/ogc \
