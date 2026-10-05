@@ -42,6 +42,7 @@ CFLAGS = -g -O2 -Wall -Wextra $(MACHDEP) $(INCLUDE) $(FREETYPE_CFLAGS)
 LIBGUI_COMPAT_STAGE ?= 1
 RAW_VIDEO_TEST ?= 0
 VIDEO_DRIVER_TEST ?= 1
+RAW_AUDIO_TEST ?= 0
 
 # Startup diagnostic stages:
 # 1 = thread + video only
@@ -61,7 +62,9 @@ export VPATH := $(SOURCES) $(LIBGUI_DIR)/data/images $(LIBGUI_DIR)/data/fonts $(
 export DEPSDIR := $(CURDIR)/$(BUILD)
 
 CFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-ifeq ($(RAW_VIDEO_TEST),1)
+ifeq ($(RAW_AUDIO_TEST),1)
+CPPFILES := audio_diag.cpp
+else ifeq ($(RAW_VIDEO_TEST),1)
 CPPFILES := main.cpp
 else ifeq ($(VIDEO_DRIVER_TEST),1)
 CPPFILES := main.cpp OgcVideoDriverCompat.cpp OgcGlyphRendererCompat.cpp GuiTextRenderer.cpp GuiText.cpp GuiElement.cpp GuiTextTranslator.cpp WiiPlatformCompat.cpp OgcThreadDriverCompat.cpp OgcAudioDriver.cpp GuiSoundOggPlayer.cpp Thread.cpp Logger.cpp Mutex.cpp
