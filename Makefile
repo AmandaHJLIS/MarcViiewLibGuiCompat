@@ -11,7 +11,8 @@ include $(DEVKITPPC)/wii_rules
 
 # libgui is kept outside this test repository so the test tracks the upstream
 # framework without copying its full source tree into MarcViiewLibGuiTest.
-LIBGUI_DIR ?= $(CURDIR)/../libgui
+PROJECT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+LIBGUI_DIR ?= $(PROJECT_DIR)/../libgui
 
 ifeq ($(wildcard $(LIBGUI_DIR)/source/libgui/Gui.h),)
 $(error "libgui not found at $(LIBGUI_DIR). Clone dborth/libgui beside this repository or set LIBGUI_DIR=/path/to/libgui")
