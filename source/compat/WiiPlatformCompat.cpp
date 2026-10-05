@@ -3,15 +3,15 @@
  * Staged WiiPlatform initialisation for real-hardware diagnostics.
  *
  * The upstream WiiPlatform::init() starts every subsystem in one call:
- * thread, video, audio, input and Wii filesystem/USB/DVD. That makes a
- * hardware black-screen impossible to localise.
+ * thread, video, audio, input and Wii filesystem/USB/DVD. This compatibility
+ * implementation deliberately skips audio because the current hardware test
+ * does not exercise libgui audio.
  *
  * LIBGUI_COMPAT_STAGE selects how far startup proceeds:
  *   1 = thread + video
- *   2 = + audio
- *   3 = + input
- *   4 = + filesystem
- *   5 = full startup
+ *   2 = + input
+ *   3 = + filesystem
+ *   4 = full startup
  ***************************************************************************/
 #include "drivers/ogc/wii/WiiPlatform.h"
 
@@ -26,22 +26,17 @@ void WiiPlatform::init(const PlatformConfig& config)
     this->videoDriver->init(config.canvasWidth, config.canvasHeight);
 
 #if LIBGUI_COMPAT_STAGE >= 2
-    this->audioDriver = new OgcAudioDriver();
-    this->audioDriver->init();
-#endif
-
-#if LIBGUI_COMPAT_STAGE >= 3
     this->inputDriver = new OgcInputDriver();
     this->inputDriver->init();
 #endif
 
-#if LIBGUI_COMPAT_STAGE >= 4
+#if LIBGUI_COMPAT_STAGE >= 3
     this->fileSystemDriver = new WiiFileSystemDriver();
     this->fileSystemDriver->init();
 #endif
 
 #if LOGGING_ENABLED
-    if (LIBGUI_COMPAT_STAGE >= 5)
+    if (LIBGUI_COMPAT_STAGE >= 4)
     {
         this->logger = new Logger();
         this->logger->registerBackend(LOGGER_OSREPORT, new OgcLoggerSysReport());
