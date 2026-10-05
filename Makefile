@@ -64,7 +64,7 @@ CFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 ifeq ($(RAW_VIDEO_TEST),1)
 CPPFILES := main.cpp
 else ifeq ($(VIDEO_DRIVER_TEST),1)
-CPPFILES := main.cpp OgcVideoDriverCompat.cpp OgcGlyphRendererCompat.cpp
+CPPFILES := main.cpp OgcVideoDriverCompat.cpp OgcGlyphRendererCompat.cpp GuiTextRenderer.cpp
 else
 CPPFILES := $(filter-out demo.cpp menu.cpp filebrowser.cpp OgcFileSystemDriver.cpp OgcSmbDriver.cpp OgcThreadDriver.cpp WiiFileSystemDriver.cpp WiiUsbMulti.cpp WiiPlatform.cpp,$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp))))
 endif
@@ -80,7 +80,7 @@ ASSET_FILES := $(notdir $(wildcard $(LIBGUI_DIR)/data/images/*.png)) \
 	$(notdir $(wildcard $(LIBGUI_DIR)/data/sounds/*.pcm)) \
 	$(notdir $(wildcard $(LIBGUI_DIR)/data/lang/*.lang))
 
-BINFILES :=
+BINFILES := $(notdir $(wildcard $(LIBGUI_DIR)/data/fonts/*.ttf))
 
 ifeq ($(strip $(CPPFILES)),)
 export LD := $(CC)
