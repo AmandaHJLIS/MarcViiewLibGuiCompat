@@ -67,6 +67,9 @@ int main(int, char **)
         video.render();
     }
 
-    video.shutdown();
+    // Do not manually tear down the video driver here. Returning from main()
+    // lets libogc perform its normal loader/reset cleanup after SYS_MainLoop()
+    // requests exit. Manual GX/VI teardown was producing corrupted video when
+    // returning to the Homebrew Channel on real hardware.
     return 0;
 }
