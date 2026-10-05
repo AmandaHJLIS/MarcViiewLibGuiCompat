@@ -20,7 +20,12 @@ int main(int, char **)
     // Now exercise the real libgui FreeType2 pipeline. The TTF is linked
     // from libgui/data/fonts and remains resident for the renderer lifetime.
     GuiTextRenderer text(font_ttf, font_ttf_size, glyph, 1.0f);
-    text.setPixelSize(24);
+    fontSystem = &text;
+
+    // Test the actual GuiText widget on top of the now-proven renderer.
+    GuiText guiText("GuiText works!", 24, {255, 255, 255, 255});
+    guiText.setAlignment(ALIGN_H::LEFT, ALIGN_V::TOP);
+    guiText.setPosition(80, 340);
 
     const int textureWidth = 32;
     const int textureHeight = 32;
@@ -66,8 +71,8 @@ int main(int, char **)
         // Test the glyph renderer's solid feature path separately.
         glyph->drawFeature(120, 400, 180, 40, {255, 220, 40, 255});
 
-        // Draw real FreeType-rasterized text through the same GlyphRenderer.
-        text.drawText(80, 340, "FreeType!", {255, 255, 255, 255});
+        // Draw the actual GuiText widget, which calls fontSystem internally.
+        guiText.draw();
 
         // Build a tiny synthetic grayscale glyph bitmap. This exercises the
         // FreeType-style FT_Bitmap -> I4 conversion without loading FreeType
