@@ -63,10 +63,15 @@ CPPFILES := $(filter-out demo.cpp menu.cpp filebrowser.cpp OgcFileSystemDriver.c
 sFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
 
-# Bundled libgui assets are intentionally excluded from the stage-1 hardware
-# diagnostic. Add them back only when a later diagnostic stage explicitly
-# needs resource loading; this keeps the first hardware test as small as
-# possible.
+# libgui's filelist.h expects these generated resource headers to exist.
+# Generate them for compilation, but do not link the bundled resource objects
+# into the minimal stage-1 hardware diagnostic.
+ASSET_FILES := $(notdir $(wildcard $(LIBGUI_DIR)/data/images/*.png)) \
+	$(notdir $(wildcard $(LIBGUI_DIR)/data/fonts/*.ttf)) \
+	$(notdir $(wildcard $(LIBGUI_DIR)/data/sounds/*.ogg)) \
+	$(notdir $(wildcard $(LIBGUI_DIR)/data/sounds/*.pcm)) \
+	$(notdir $(wildcard $(LIBGUI_DIR)/data/lang/*.lang))
+
 BINFILES :=
 
 ifeq ($(strip $(CPPFILES)),)
@@ -75,10 +80,10 @@ else
 export LD := $(CXX)
 endif
 
-export OFILES_BIN := $(addsuffix .o,$(BINFILES))
+export OFILES_BIN :=
 export OFILES_SOURCES := $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(sFILES:.s=.o) $(SFILES:.S=.o)
 export OFILES := $(OFILES_BIN) $(OFILES_SOURCES)
-export HFILES := $(addsuffix .h,$(subst .,_,$(BINFILES)))
+export HFILES := $(addsuffix .h,$(subst .,_,$(ASSET_FILES)))
 
 export INCLUDE := $(foreach dir,$(INCLUDES),-I$(dir)) \
 	$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
