@@ -15,7 +15,7 @@
 #include <ogc/usbstorage.h>
 #include <di/di.h>
 
-#include "WiiFileSystemDriver.h"
+#include "drivers/ogc/wii/WiiFileSystemDriver.h"
 #include "WiiUsbMulti.h"
 
 static DISC_INTERFACE * GetDiscSd()   { return const_cast<DISC_INTERFACE *>(&__io_wiisd); }
