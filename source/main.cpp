@@ -129,7 +129,7 @@ int main(int, char **)
     }
 
     image->destroyTexture(texture);
-    audio->shutdown();
+    // WiiPlatform owns the audio driver; leave shutdown to platform teardown.
 
     return 0;
 }
