@@ -41,7 +41,8 @@ export FREETYPE_LIBS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config -
 CFLAGS = -g -O2 -Wall -Wextra $(MACHDEP) $(INCLUDE) $(FREETYPE_CFLAGS)
 LIBGUI_COMPAT_STAGE ?= 2
 RAW_VIDEO_TEST ?= 0
-DIRECT_VIDEO_TEST ?= 1
+DIRECT_INPUT_TEST ?= 1
+DIRECT_VIDEO_TEST ?= 0
 VIDEO_DRIVER_TEST ?= 0
 
 # Startup diagnostic stages:
@@ -63,6 +64,8 @@ export DEPSDIR := $(CURDIR)/$(BUILD)
 CFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 ifeq ($(RAW_VIDEO_TEST),1)
 CPPFILES := main.cpp
+else ifeq ($(DIRECT_INPUT_TEST),1)
+CPPFILES := main.cpp OgcVideoDriverCompat.cpp OgcGlyphRendererCompat.cpp OgcInputDriverCompat.cpp InputController.cpp
 else ifeq ($(DIRECT_VIDEO_TEST),1)
 CPPFILES := main.cpp OgcVideoDriverCompat.cpp OgcGlyphRendererCompat.cpp
 else ifeq ($(VIDEO_DRIVER_TEST),1)
