@@ -39,24 +39,24 @@ int main(int, char **)
 
     GuiText leftText("Left aligned", 20, {255, 255, 255, 255});
     leftText.setParent(&textPanel);
-    leftText.setSize(520, 30);
+    leftText.setSize(0, 0);
     leftText.setAlignment(ALIGN_H::LEFT, ALIGN_V::TOP);
 
     GuiText centreText("Centre aligned", 24, {80, 220, 255, 255});
     centreText.setParent(&textPanel);
-    centreText.setSize(520, 40);
+    centreText.setSize(0, 0);
     centreText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
     centreText.setPosition(0, 38);
 
     GuiText rightText("Right aligned", 20, {255, 220, 80, 255});
     rightText.setParent(&textPanel);
-    rightText.setSize(520, 30);
+    rightText.setSize(0, 0);
     rightText.setAlignment(ALIGN_H::RIGHT, ALIGN_V::TOP);
     rightText.setPosition(0, 88);
 
     GuiText wrappedText("Wrapping is working too!", 18, {180, 255, 180, 255});
     wrappedText.setParent(&textPanel);
-    wrappedText.setSize(520, 50);
+    wrappedText.setSize(220, 50);
     wrappedText.setAlignment(ALIGN_H::LEFT, ALIGN_V::TOP);
     wrappedText.setPosition(0, 112);
     wrappedText.setWrap(true, 220);
