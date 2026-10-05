@@ -90,6 +90,13 @@ int main(int, char **)
 
         video.clearScreen({40, 40, 40, 255});
 
+        // Diagnostic: explicitly paint the whole EFB through the known-good
+        // image renderer. If this appears grey, the remaining issue is
+        // specifically the GX copy/clear path rather than framebuffer output.
+        image->drawRectangle(
+            0.0f, 0.0f, 640.0f, 480.0f,
+            {40, 40, 40, 255});
+
         // Keep the known-good rectangle as a reference.
         image->drawRectangle(
             80.0f, 120.0f, 220.0f, 240.0f,
