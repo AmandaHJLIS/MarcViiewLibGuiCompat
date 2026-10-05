@@ -90,8 +90,8 @@ int main(int, char **)
                                tone, bytes, 110, 110, NULL);
 
     // Give the voice time to play, then return to HBC.
-    u32 start = ticks_to_millisecs(gettime());
-    while (SYS_MainLoop() && ticks_to_millisecs(gettime()) - start < 500)
+    u32 start = ASND_GetTime();
+    while (SYS_MainLoop() && (ASND_GetTime() - start) < 500)
         WPAD_ScanPads();
 
     if (voice >= 0 && result == SND_OK)
