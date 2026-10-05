@@ -38,7 +38,7 @@ export FREETYPE_CFLAGS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config
 export FREETYPE_LIBS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config --libs freetype2`
 
 CFLAGS = -g -O2 -Wall -Wextra $(MACHDEP) $(INCLUDE) $(FREETYPE_CFLAGS)
-CXXFLAGS = $(CFLAGS) -std=c++11
+CXXFLAGS = $(CFLAGS) -std=c++11 -DVIDEO_WaitForFlush=VIDEO_WaitVSync
 LDFLAGS = -g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 
 LIBS := -ldi -liso9660 -lpng -lz -lfat -lwiiuse -lbte -lasnd -logc -lvorbisidec -logg $(FREETYPE_LIBS)
