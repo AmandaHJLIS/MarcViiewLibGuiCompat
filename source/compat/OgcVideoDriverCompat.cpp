@@ -16,6 +16,8 @@
 
 #define DEFAULT_FIFO_SIZE (256 * 1024)
 
+static GXColor g_copyClearColor = {0, 0, 0, 255};
+
 static Mtx GXmodelView2D;
 
 OgcVideoDriver::OgcVideoDriver()
@@ -52,13 +54,14 @@ void OgcVideoDriver::init(int width, int height)
     whichfb = 0;
     frameTimer = 0;
 
-    GXColor background = {0, 0, 0, 0xff};
+    GXColor background = g_copyClearColor;
 
     gp_fifo = memalign(32, DEFAULT_FIFO_SIZE);
     memset(gp_fifo, 0, DEFAULT_FIFO_SIZE);
 
     GX_Init(gp_fifo, DEFAULT_FIFO_SIZE);
-    GX_SetCopyClear(background, GX_MAX_Z24);
+    g_copyClearColor = background;
+    GX_SetCopyClear(g_copyClearColor, GX_MAX_Z24);
 
     float yscale = GX_GetYScaleFactor(vmode->efbHeight, vmode->xfbHeight);
     uint32_t xfbHeight = GX_SetDispCopyYScale(yscale);
@@ -102,6 +105,10 @@ void OgcVideoDriver::render()
     whichfb ^= 1;
     GX_SetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);
     GX_SetColorUpdate(GX_TRUE);
+    // Re-apply the requested clear colour immediately before the copy. Some
+    // GX state changes made by renderers can otherwise make the intended
+    // per-frame clear less obvious while this compatibility path is tested.
+    GX_SetCopyClear(g_copyClearColor, GX_MAX_Z24);
     GX_CopyDisp(xfb[whichfb], GX_TRUE);
     VIDEO_SetNextFramebuffer(xfb[whichfb]);
     VIDEO_Flush();
