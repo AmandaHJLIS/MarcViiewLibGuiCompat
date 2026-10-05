@@ -1,53 +1,37 @@
 #include <gccore.h>
 
-#include "drivers/ogc/wii/WiiPlatform.h"
-#include "drivers/InputController.h"
+#include "drivers/ogc/OgcVideoDriver.h"
 
-WiiPlatform platformInstance;
-Platform* platform = &platformInstance;
+static OgcVideoDriver video;
 
-static void showCheckpoint(const PixelColor& color, int frames)
+static void showColour(const PixelColor& color, int frames)
 {
     for (int i = 0; i < frames && SYS_MainLoop(); ++i)
     {
-        platform->getVideo()->clearScreen(color);
-        platform->getVideo()->render();
+        video.clearScreen(color);
+        video.render();
     }
 }
 
 int main(int, char **)
 {
-    PlatformConfig config;
-    config.canvasWidth = 640;
-    config.canvasHeight = 480;
+    // Bypass WiiPlatform entirely. This isolates the compatibility video
+    // driver from thread, input, filesystem and all other startup code.
+    video.init(640, 480);
 
-    // Checkpoint 1: platform initialization returned successfully.
-    platform->init(config);
+    // RED = OgcVideoDriver::init() returned and the GX path can present.
+    showColour({255, 0, 0, 255}, 180);
 
-    // RED = platform init returned successfully.
-    showCheckpoint({255, 0, 0, 255}, 120);
+    // GREEN = continued direct video rendering is alive.
+    showColour({0, 255, 0, 255}, 180);
 
-    // Checkpoint 2: the input driver exists and its first update returned.
-    platform->getInput()->update();
-
-    // GREEN = first input update returned successfully.
-    showCheckpoint({0, 255, 0, 255}, 120);
-
-    // Checkpoint 3: minimal input loop, with no libgui text/image widgets.
-    // BLUE means repeated input updates and video rendering are alive.
+    // BLUE = stable direct video loop.
     while (SYS_MainLoop())
     {
-        platform->getInput()->update();
-
-        InputController* pad = controller[0];
-
-        if (pad->isPressed(INPUT_BTN_HOME))
-            break;
-
-        platform->getVideo()->clearScreen({0, 0, 255, 255});
-        platform->getVideo()->render();
+        video.clearScreen({0, 0, 255, 255});
+        video.render();
     }
 
-    platform->requestExit();
+    video.shutdown();
     return 0;
 }
