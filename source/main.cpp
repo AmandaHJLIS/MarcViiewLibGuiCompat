@@ -1,4 +1,6 @@
+#include <gccore.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "drivers/ogc/wii/WiiPlatform.h"
@@ -78,6 +80,11 @@ int main(int, char **)
     buttonStateText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
 
     int clickCount = 0;
+    char clickCountText[64];
+    GuiText countText("Clicks: 0", 16, {180, 255, 180, 255});
+    countText.setPosition(80, 435);
+    countText.setSize(480, 30);
+    countText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::TOP);
 
     while (SYS_MainLoop())
     {
@@ -107,7 +114,6 @@ int main(int, char **)
         else
             buttonStateText.setText("Button state: DEFAULT");
 
-        video:
         platform->getVideo()->clearScreen({40, 40, 40, 255});
 
         image->drawRectangle(
@@ -130,13 +136,8 @@ int main(int, char **)
         pointerText.draw();
         buttonStateText.draw();
 
-        GuiText countText(
-            "Clicks: " + std::to_string(clickCount),
-            16,
-            {180, 255, 180, 255});
-        countText.setPosition(80, 435);
-        countText.setSize(480, 30);
-        countText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::TOP);
+        snprintf(clickCountText, sizeof(clickCountText), "Clicks: %d", clickCount);
+        countText.setText(clickCountText);
         countText.draw();
 
         platform->getVideo()->render();
