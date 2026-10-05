@@ -41,12 +41,12 @@ CFLAGS = -g -O2 -Wall -Wextra $(MACHDEP) $(INCLUDE) $(FREETYPE_CFLAGS)
 CXXFLAGS = $(CFLAGS) -std=c++11
 LDFLAGS = -g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 
-LIBS := -ldi -liso9660 -lsmb2 -lpng -lz -lfat -lwiiuse -lbte -lasnd -logc -lvorbisidec -logg $(FREETYPE_LIBS)
+LIBS := -ldi -liso9660 -lpng -lz -lfat -lwiiuse -lbte -lasnd -logc -lvorbisidec -logg $(FREETYPE_LIBS)
 
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 
 export OUTPUT := $(CURDIR)/$(TARGET)
-export VPATH := $(SOURCES) $(LIBGUI_DIR)/data/fonts $(LIBGUI_DIR)/data/lang
+export VPATH := $(SOURCES) $(LIBGUI_DIR)/data/images $(LIBGUI_DIR)/data/fonts $(LIBGUI_DIR)/data/sounds $(LIBGUI_DIR)/data/lang
 export DEPSDIR := $(CURDIR)/$(BUILD)
 
 CFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
@@ -54,7 +54,11 @@ CPPFILES := $(filter-out demo.cpp menu.cpp filebrowser.cpp OgcFileSystemDriver.c
 sFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
 
-BINFILES := font.ttf en.lang
+BINFILES := $(notdir $(wildcard $(LIBGUI_DIR)/data/images/*.png)) \
+	$(notdir $(wildcard $(LIBGUI_DIR)/data/fonts/*.ttf)) \
+	$(notdir $(wildcard $(LIBGUI_DIR)/data/sounds/*.ogg)) \
+	$(notdir $(wildcard $(LIBGUI_DIR)/data/sounds/*.pcm)) \
+	$(notdir $(wildcard $(LIBGUI_DIR)/data/lang/*.lang))
 
 ifeq ($(strip $(CPPFILES)),)
 export LD := $(CC)
@@ -98,11 +102,23 @@ $(OUTPUT).elf: $(OFILES)
 
 $(OFILES_SOURCES): $(HFILES)
 
-%.ttf.o %_ttf.h : $(LIBGUI_DIR)/data/fonts/%.ttf
+%.ttf.o %_ttf.h : %.ttf
 	@echo $(notdir $<)
 	$(bin2o)
 
-%.lang.o %_lang.h : $(LIBGUI_DIR)/data/lang/%.lang
+%.lang.o %_lang.h : %.lang
+	@echo $(notdir $<)
+	$(bin2o)
+
+%.png.o %_png.h : %.png
+	@echo $(notdir $<)
+	$(bin2o)
+
+%.ogg.o %_ogg.h : %.ogg
+	@echo $(notdir $<)
+	$(bin2o)
+
+%.pcm.o %_pcm.h : %.pcm
 	@echo $(notdir $<)
 	$(bin2o)
 
