@@ -3,6 +3,9 @@
 #---------------------------------------------------------------------------------
 .SUFFIXES:
 
+# Capture the repository root before the devkit rules add their own makefiles.
+PROJECT_DIR := $(abspath $(dir $(firstword $(MAKEFILE_LIST))))
+
 ifeq ($(strip $(DEVKITPPC)),)
 $(error "Please set DEVKITPPC in your environment. export DEVKITPPC=<path to>devkitPPC")
 endif
@@ -11,7 +14,6 @@ include $(DEVKITPPC)/wii_rules
 
 # libgui is kept outside this test repository so the test tracks the upstream
 # framework without copying its full source tree into MarcViiewLibGuiTest.
-PROJECT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 LIBGUI_DIR ?= $(PROJECT_DIR)/../libgui
 
 ifeq ($(wildcard $(LIBGUI_DIR)/source/libgui/Gui.h),)
