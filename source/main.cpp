@@ -13,6 +13,7 @@ int main(int, char **)
     video.init(640, 480);
 
     ImageRenderer* image = video.getImageRenderer();
+    GlyphRenderer* glyph = video.getGlyphRenderer();
 
     const int textureWidth = 32;
     const int textureHeight = 32;
@@ -54,6 +55,9 @@ int main(int, char **)
             400.0f, 240.0f,
             textureWidth, textureHeight,
             0.0f, 8.0f, 8.0f, 255);
+
+        // Test the glyph renderer's solid feature path separately.
+        glyph->drawFeature(120, 400, 180, 40, {255, 220, 40, 255});
 
         video.render();
     }
