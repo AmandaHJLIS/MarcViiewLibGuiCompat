@@ -1,12 +1,9 @@
 #include <gccore.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "drivers/ogc/wii/WiiPlatform.h"
 #include "drivers/InputController.h"
-#include "GuiButton.h"
-#include "GuiTrigger.h"
 #include "GuiTextRenderer.h"
 #include "filelist.h"
 
@@ -21,124 +18,132 @@ int main(int, char **)
 
     platform->init(config);
 
-    ImageRenderer* image = platform->getVideo()->getImageRenderer();
     GlyphRenderer* glyph = platform->getVideo()->getGlyphRenderer();
 
     GuiTextRenderer text(font_ttf, font_ttf_size, glyph, 1.0f);
     fontSystem = &text;
 
-    class TestContainer : public GuiElement {
-    public:
-        void draw() override {}
-    };
-
-    TestContainer textPanel;
-    textPanel.setPosition(40, 35);
-    textPanel.setSize(560, 90);
-
     GuiText title("libgui input compatibility", 24, {255, 255, 255, 255});
-    title.setParent(&textPanel);
+    title.setPosition(40, 35);
     title.setSize(560, 40);
     title.setAlignment(ALIGN_H::CENTRE, ALIGN_V::TOP);
 
     GuiText instructions(
-        "Point at the button and press A, or press HOME to exit",
+        "Press A / B / D-pad / HOME and point the Wii Remote",
         16,
         {190, 220, 255, 255});
-    instructions.setParent(&textPanel);
+    instructions.setPosition(40, 78);
     instructions.setSize(560, 40);
     instructions.setAlignment(ALIGN_H::CENTRE, ALIGN_V::TOP);
-    instructions.setPosition(0, 42);
-
-    GuiButton testButton(300, 70);
-    testButton.setPosition(170, 170);
-
-    GuiText buttonLabel("PRESS A", 24, {255, 255, 255, 255});
-    buttonLabel.setSize(300, 70);
-    buttonLabel.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
-    testButton.setLabel(&buttonLabel);
-
-    // BUTTON_ONLY deliberately exercises the real GuiTrigger -> InputController
-    // path without requiring a separate GuiWindow/focus implementation.
-    GuiTrigger triggerA;
-    triggerA.setButtonOnlyTrigger(0, INPUT_BTN_A);
-    testButton.setTrigger(&triggerA);
 
     GuiText statusText("Waiting for input...", 18, {180, 255, 180, 255});
-    statusText.setPosition(80, 285);
-    statusText.setSize(480, 50);
+    statusText.setPosition(60, 170);
+    statusText.setSize(520, 50);
     statusText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
 
-    GuiText pointerText("Pointer: inactive", 16, {255, 220, 120, 255});
-    pointerText.setPosition(80, 345);
-    pointerText.setSize(480, 40);
+    GuiText pointerText("Pointer: inactive", 18, {255, 220, 120, 255});
+    pointerText.setPosition(60, 235);
+    pointerText.setSize(520, 40);
     pointerText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
 
-    GuiText buttonStateText("Button state: DEFAULT", 16, {200, 200, 200, 255});
-    buttonStateText.setPosition(80, 390);
-    buttonStateText.setSize(480, 40);
-    buttonStateText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
+    GuiText heldText("Held buttons: none", 16, {210, 210, 210, 255});
+    heldText.setPosition(60, 285);
+    heldText.setSize(520, 40);
+    heldText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
 
-    int clickCount = 0;
-    char clickCountText[64];
-    GuiText countText("Clicks: 0", 16, {180, 255, 180, 255});
-    countText.setPosition(80, 435);
-    countText.setSize(480, 30);
-    countText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::TOP);
+    GuiText orientationText("Orientation: normal", 16, {210, 210, 210, 255});
+    orientationText.setPosition(60, 325);
+    orientationText.setSize(520, 40);
+    orientationText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
+
+    GuiText connectionText("Controller 1: disconnected", 16, {210, 210, 210, 255});
+    connectionText.setPosition(60, 365);
+    connectionText.setSize(520, 40);
+    connectionText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
+
+    GuiText navigationText("Navigation: none", 16, {210, 210, 210, 255});
+    navigationText.setPosition(60, 405);
+    navigationText.setSize(520, 40);
+    navigationText.setAlignment(ALIGN_H::CENTRE, ALIGN_V::MIDDLE);
 
     while (SYS_MainLoop())
     {
         platform->getInput()->update();
 
         InputController* pad = controller[0];
+        const InputPadData& data = pad->getPadData();
 
         if (pad->isPressed(INPUT_BTN_HOME))
             break;
 
-        testButton.update(pad);
+        if (pad->isPressed(INPUT_BTN_A))
+            statusText.setText("A pressed");
+        else if (pad->isPressed(INPUT_BTN_B))
+            statusText.setText("B pressed");
+        else if (pad->isPressed(INPUT_BTN_1))
+            statusText.setText("1 pressed");
+        else if (pad->isPressed(INPUT_BTN_2))
+            statusText.setText("2 pressed");
+        else if (pad->isPressed(INPUT_BTN_PLUS))
+            statusText.setText("PLUS pressed");
+        else if (pad->isPressed(INPUT_BTN_MINUS))
+            statusText.setText("MINUS pressed");
 
-        if (testButton.getState() == STATE::CLICKED)
+        char held[96];
+        snprintf(
+            held, sizeof(held),
+            "Held: %s%s%s%s",
+            pad->isHeld(INPUT_BTN_A) ? "A " : "",
+            pad->isHeld(INPUT_BTN_B) ? "B " : "",
+            pad->isHeld(INPUT_BTN_UP) ? "UP " : "",
+            pad->isHeld(INPUT_BTN_DOWN) ? "DOWN " : "");
+        heldText.setText(held);
+
+        if (data.validPointer)
         {
-            ++clickCount;
-            statusText.setText("A button click received!");
-            testButton.resetState();
+            char pointer[96];
+            snprintf(
+                pointer, sizeof(pointer),
+                "Pointer: active  X=%d  Y=%d",
+                (int)data.cursor_x, (int)data.cursor_y);
+            pointerText.setText(pointer);
+        }
+        else
+        {
+            pointerText.setText("Pointer: inactive");
         }
 
-        if (pad->getPadData().validPointer)
-            pointerText.setText("Pointer: active");
-        else
-            pointerText.setText("Pointer: inactive");
+        orientationText.setText(
+            pad->isSideways()
+                ? "Orientation: sideways"
+                : "Orientation: normal");
 
-        if (testButton.getState() == STATE::SELECTED)
-            buttonStateText.setText("Button state: SELECTED");
+        connectionText.setText(
+            data.hw_connected[INPUT_HW_WIIMOTE]
+                ? "Controller 1: Wii Remote connected"
+                : "Controller 1: disconnected");
+
+        if (pad->up())
+            navigationText.setText("Navigation: UP");
+        else if (pad->down())
+            navigationText.setText("Navigation: DOWN");
+        else if (pad->left())
+            navigationText.setText("Navigation: LEFT");
+        else if (pad->right())
+            navigationText.setText("Navigation: RIGHT");
         else
-            buttonStateText.setText("Button state: DEFAULT");
+            navigationText.setText("Navigation: none");
 
         platform->getVideo()->clearScreen({40, 40, 40, 255});
 
-        image->drawRectangle(
-            120.0f, 135.0f, 400.0f, 10.0f,
-            {50, 120, 180, 255});
-
-        PixelColor buttonColour =
-            testButton.getState() == STATE::SELECTED
-                ? PixelColor{70, 170, 230, 255}
-                : PixelColor{50, 100, 150, 255};
-
-        image->drawRectangle(
-            170.0f, 170.0f, 300.0f, 70.0f,
-            buttonColour);
-
         title.draw();
         instructions.draw();
-        testButton.draw();
         statusText.draw();
         pointerText.draw();
-        buttonStateText.draw();
-
-        snprintf(clickCountText, sizeof(clickCountText), "Clicks: %d", clickCount);
-        countText.setText(clickCountText);
-        countText.draw();
+        heldText.draw();
+        orientationText.draw();
+        connectionText.draw();
+        navigationText.draw();
 
         platform->getVideo()->render();
     }
