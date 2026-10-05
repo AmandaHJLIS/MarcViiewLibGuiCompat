@@ -1,13 +1,5 @@
 /****************************************************************************
  * MarcViiewLibGuiCompat - legacy libogc OgcVideoDriver compatibility
- *
- * This is an isolated compatibility implementation of upstream libgui's
- * OgcVideoDriver. It deliberately contains only the video/GX layer; audio,
- * input, filesystem, threading, and WiiPlatform are not involved.
- *
- * The implementation is adapted from upstream dborth/libgui's
- * source/drivers/ogc/OgcVideoDriver.cpp, with legacy libogc-compatible
- * framebuffer handling and VIDEO_WaitVSync().
  ****************************************************************************/
 
 #include <gccore.h>
@@ -86,12 +78,8 @@ void OgcVideoDriver::init(int width, int height)
     GX_CopyDisp(xfb[0], GX_TRUE);
     GX_SetDispCopyGamma(GX_GM_1_0);
 
-    // Establish the 2D state expected by the upstream image renderer.
     resetVideoMenu();
 
-    // Only the image renderer is instantiated in this isolated test.
-    // Glyph rendering will be tested separately after rectangle rendering
-    // is known to be stable on legacy libogc hardware.
     imageRenderer = new OgcImageRenderer();
 }
 
@@ -109,7 +97,6 @@ void OgcVideoDriver::render()
     GX_SetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);
     GX_SetColorUpdate(GX_TRUE);
 
-    // Match the known-working devkitPro frame sequence.
     GX_DrawDone();
     whichfb ^= 1;
     GX_SetZMode(GX_TRUE, GX_LEQUAL, GX_TRUE);
@@ -144,15 +131,11 @@ void OgcVideoDriver::resetVideoMenu()
     GX_SetDispCopySrc(0, 0, vmode->fbWidth, vmode->efbHeight);
     GX_SetDispCopyDst(vmode->fbWidth, xfbHeight);
 
-    GX_SetCopyFilter(vmode->aa,
-                     vmode->sample_pattern,
-                     GX_TRUE,
-                     vmode->vfilter);
+    GX_SetCopyFilter(vmode->aa, vmode->sample_pattern, GX_TRUE, vmode->vfilter);
 
     GX_SetFieldMode(vmode->field_rendering,
                     ((vmode->viHeight == 2 * vmode->xfbHeight)
-                        ? GX_ENABLE
-                        : GX_DISABLE));
+                        ? GX_ENABLE : GX_DISABLE));
 
     if (vmode->aa)
         GX_SetPixelFmt(GX_PF_RGB565_Z16, GX_ZC_LINEAR);
@@ -175,6 +158,7 @@ void OgcVideoDriver::resetVideoMenu()
 
     GX_SetNumChans(1);
     GX_SetNumTexGens(0);
+    GX_SetNumTevStages(1);
     GX_SetTevOp(GX_TEVSTAGE0, GX_PASSCLR);
     GX_SetTevOrder(GX_TEVSTAGE0,
                    GX_TEXCOORDNULL,
@@ -182,30 +166,13 @@ void OgcVideoDriver::resetVideoMenu()
                    GX_COLOR0A0);
 
     guMtxIdentity(GXmodelView2D);
-    guMtxTransApply(GXmodelView2D,
-                    GXmodelView2D,
-                    0.0F,
-                    0.0F,
-                    -50.0F);
-
+    guMtxTransApply(GXmodelView2D, GXmodelView2D, 0.0F, 0.0F, -50.0F);
     GX_LoadPosMtxImm(GXmodelView2D, GX_PNMTX0);
 
-    guOrtho(p,
-            0,
-            screenHeight - 1,
-            0,
-            screenWidth - 1,
-            0,
-            300);
-
+    guOrtho(p, 0, screenHeight - 1, 0, screenWidth - 1, 0, 300);
     GX_LoadProjectionMtx(p, GX_ORTHOGRAPHIC);
 
-    GX_SetViewport(0,
-                   0,
-                   vmode->fbWidth,
-                   vmode->efbHeight,
-                   0,
-                   1);
+    GX_SetViewport(0, 0, vmode->fbWidth, vmode->efbHeight, 0, 1);
 
     GX_SetBlendMode(GX_BM_BLEND,
                     GX_BL_SRCALPHA,
@@ -272,41 +239,59 @@ void OgcImageRenderer::drawTexture(void* texture, float xpos, float ypos,
     GXTexObj texObj;
     GX_InitTexObj(&texObj, texture, width, height, GX_TF_RGBA8,
                   GX_CLAMP, GX_CLAMP, GX_FALSE);
+    GX_InitTexObjLOD(&texObj, GX_LINEAR, GX_LINEAR, 0.0f, 0.0f, 0.0f,
+                     GX_FALSE, GX_FALSE, GX_ANISO_1);
     GX_LoadTexObj(&texObj, GX_TEXMAP0);
     GX_InvalidateTexAll();
 
+    // drawTexture needs a texture coordinate generator; the solid rectangle
+    // path deliberately disables texture generation.
+    GX_SetNumTexGens(1);
+    GX_SetTexCoordGen(GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY);
+    GX_SetNumTevStages(1);
     GX_SetTevOp(GX_TEVSTAGE0, GX_MODULATE);
+    GX_SetTevOrder(GX_TEVSTAGE0,
+                   GX_TEXCOORD0,
+                   GX_TEXMAP0,
+                   GX_COLOR0A0);
     GX_SetVtxDesc(GX_VA_TEX0, GX_DIRECT);
 
     Mtx m, m1, m2, mv;
-    width >>= 1;
-    height >>= 1;
+    uint16_t halfWidth = width >> 1;
+    uint16_t halfHeight = height >> 1;
 
     guMtxScale(m1, scaleX, scaleY, 1.0);
     guVector axis = {0, 0, 1};
     guMtxRotAxisDeg(m2, &axis, degrees);
     guMtxConcat(m2, m1, m);
-    guMtxTransApply(m, m, xpos + width, ypos + height, 0);
+    guMtxTransApply(m, m, xpos + halfWidth, ypos + halfHeight, 0);
     guMtxConcat(GXmodelView2D, m, mv);
     GX_LoadPosMtxImm(mv, GX_PNMTX0);
 
     GX_Begin(GX_QUADS, GX_VTXFMT0, 4);
-    GX_Position3f32(-width, -height, 0);
+    GX_Position3f32(-halfWidth, -halfHeight, 0);
     GX_Color4u8(0xFF, 0xFF, 0xFF, alpha);
     GX_TexCoord2f32(0, 0);
-    GX_Position3f32(width, -height, 0);
+    GX_Position3f32(halfWidth, -halfHeight, 0);
     GX_Color4u8(0xFF, 0xFF, 0xFF, alpha);
     GX_TexCoord2f32(1, 0);
-    GX_Position3f32(width, height, 0);
+    GX_Position3f32(halfWidth, halfHeight, 0);
     GX_Color4u8(0xFF, 0xFF, 0xFF, alpha);
     GX_TexCoord2f32(1, 1);
-    GX_Position3f32(-width, height, 0);
+    GX_Position3f32(-halfWidth, halfHeight, 0);
     GX_Color4u8(0xFF, 0xFF, 0xFF, alpha);
     GX_TexCoord2f32(0, 1);
     GX_End();
 
     GX_LoadPosMtxImm(GXmodelView2D, GX_PNMTX0);
+
+    // Restore the solid-colour state for subsequent drawRectangle calls.
+    GX_SetNumTexGens(0);
     GX_SetTevOp(GX_TEVSTAGE0, GX_PASSCLR);
+    GX_SetTevOrder(GX_TEVSTAGE0,
+                   GX_TEXCOORDNULL,
+                   GX_TEXMAP_NULL,
+                   GX_COLOR0A0);
     GX_SetVtxDesc(GX_VA_TEX0, GX_NONE);
 }
 
