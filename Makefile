@@ -64,7 +64,7 @@ CFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 ifeq ($(RAW_VIDEO_TEST),1)
 CPPFILES := main.cpp
 else ifeq ($(VIDEO_DRIVER_TEST),1)
-CPPFILES := main.cpp OgcVideoDriverCompat.cpp OgcGlyphRendererCompat.cpp GuiTextRenderer.cpp GuiText.cpp GuiElement.cpp GuiTextTranslator.cpp WiiPlatformCompat.cpp OgcThreadDriverCompat.cpp Logger.cpp Mutex.cpp
+CPPFILES := main.cpp OgcVideoDriverCompat.cpp OgcGlyphRendererCompat.cpp GuiTextRenderer.cpp GuiText.cpp GuiElement.cpp GuiTextTranslator.cpp WiiPlatformCompat.cpp OgcThreadDriverCompat.cpp OgcAudioDriver.cpp GuiSoundOggPlayer.cpp Thread.cpp Logger.cpp Mutex.cpp
 else
 CPPFILES := $(filter-out demo.cpp menu.cpp filebrowser.cpp OgcFileSystemDriver.cpp OgcSmbDriver.cpp OgcThreadDriver.cpp WiiFileSystemDriver.cpp WiiUsbMulti.cpp WiiPlatform.cpp,$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp))))
 endif
