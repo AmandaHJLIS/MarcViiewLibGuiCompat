@@ -66,11 +66,22 @@ int main(int, char **)
         break;
     }
 
-    // ASND_Init() owns DSP_Init() and installs the ASND DSP task.
-    // Do not manually unhalt the DSP here: we want to test the normal
-    // libogc ASND lifecycle without adding an extra DSP state transition.
+    // Stage 1: test ASND_Init() by itself. If Dolphin still throws
+    // 01fe01fe here, the failure is inside DSP/ASND initialisation.
     ASND_Init();
-    ASND_Pause(0);
+
+    // Blue = ASND_Init() returned to the CPU successfully.
+    GX_SetCopyClear((GXColor){40, 100, 220, 255}, 0x00ffffff);
+    GX_DrawDone();
+    GX_CopyDisp(VIDEO_GetCurrentFramebuffer(), GX_TRUE);
+    VIDEO_Flush();
+
+    // Keep the stage result visible for a few seconds.
+    for (int i = 0; i < 180; ++i)
+        VIDEO_WaitVSync();
+
+    ASND_End();
+    return 0;
 
     const int frames = 4800;
     const int bytes = frames * 2 * (int)sizeof(int16_t);
