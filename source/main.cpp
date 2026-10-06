@@ -79,6 +79,9 @@ int main(int, char **)
         for (int i = 0; i < 32; ++i)
             testTexture[i] = 0xFF;
 
+        // GX reads texture memory directly; flush the CPU cache first.
+        DCFlushRange(testTexture, sizeof(testTexture));
+
         platform->getVideo()->getGlyphRenderer()->drawQuad(
             testTexture, 0, 200, 64, 64, {255, 255, 255, 255});
 
