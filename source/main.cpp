@@ -73,10 +73,9 @@ int main(int, char **)
 
         platform->getVideo()->clearScreen({0, 0, 0, 255});
 
-        // Diagnostic: draw a solid rectangle in the same area where the text
-        // should appear. This confirms the GX viewport/coordinates are visible
-        // independently of FreeType glyph textures.
-        platform->getVideo()->getImageRenderer()->drawRectangle(
+        // Diagnostic: draw a solid GX quad through the glyph renderer,
+        // bypassing FreeType and glyph textures entirely.
+        platform->getVideo()->getGlyphRenderer()->drawFeature(
             0, 200, 300, 60, {255, 255, 255, 255});
 
         text.draw();
