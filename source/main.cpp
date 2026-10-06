@@ -72,6 +72,7 @@ int main(int, char **)
             break;
 
         platform->getVideo()->clearScreen({0, 0, 0, 255});
+        text.draw();
         platform->getVideo()->render();
     }
 
