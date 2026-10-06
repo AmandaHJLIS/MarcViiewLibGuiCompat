@@ -73,10 +73,14 @@ int main(int, char **)
 
         platform->getVideo()->clearScreen({0, 0, 0, 255});
 
-        // Diagnostic: draw a solid GX quad through the glyph renderer,
-        // bypassing FreeType and glyph textures entirely.
-        platform->getVideo()->getGlyphRenderer()->drawFeature(
-            0, 200, 300, 60, {255, 255, 255, 255});
+        // Diagnostic: exercise the glyph renderer's texture-backed path
+        // with a hand-built 8x8 I4 texture, bypassing FreeType entirely.
+        uint8_t testTexture[32] __attribute__((aligned(32)));
+        for (int i = 0; i < 32; ++i)
+            testTexture[i] = 0xFF;
+
+        platform->getVideo()->getGlyphRenderer()->drawQuad(
+            testTexture, 0, 200, 64, 64, {255, 255, 255, 255});
 
         text.draw();
         platform->getVideo()->render();
