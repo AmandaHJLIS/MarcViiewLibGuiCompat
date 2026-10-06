@@ -21,6 +21,5 @@ int main(int, char **)
         platform->getVideo()->render();
     }
 
-    platform->shutdown();
     return 0;
 }
