@@ -97,16 +97,10 @@ void OgcGlyphRenderer::drawQuad(void* texture, int16_t screenX, int16_t screenY,
     GXTexObj glyphTexture;
     GX_InitTexObj(&glyphTexture, texture, width, height, GX_TF_I4,
                   GX_CLAMP, GX_CLAMP, GX_FALSE);
-    GX_InitTexObjLOD(&glyphTexture, GX_LINEAR, GX_LINEAR, 0.0f, 0.0f, 0.0f,
-                     GX_FALSE, GX_FALSE, GX_ANISO_1);
     GX_LoadTexObj(&glyphTexture, GX_TEXMAP0);
     GX_InvalidateTexAll();
 
-    GX_SetNumTexGens(1);
-    GX_SetTexCoordGen(GX_TEXCOORD0, GX_TG_MTX2x4, GX_TG_TEX0, GX_IDENTITY);
-    GX_SetNumTevStages(1);
     GX_SetTevOp(GX_TEVSTAGE0, GX_MODULATE);
-    GX_SetTevOrder(GX_TEVSTAGE0, GX_TEXCOORD0, GX_TEXMAP0, GX_COLOR0A0);
     GX_SetVtxDesc(GX_VA_TEX0, GX_DIRECT);
 
     GX_Begin(GX_QUADS, this->vertexIndex, 4);
@@ -129,9 +123,7 @@ void OgcGlyphRenderer::drawQuad(void* texture, int16_t screenX, int16_t screenY,
 
     GX_End();
 
-    GX_SetNumTexGens(0);
     GX_SetTevOp(GX_TEVSTAGE0, GX_PASSCLR);
-    GX_SetTevOrder(GX_TEVSTAGE0, GX_TEXCOORDNULL, GX_TEXMAP_NULL, GX_COLOR0A0);
     GX_SetVtxDesc(GX_VA_TEX0, GX_NONE);
 }
 
