@@ -13,7 +13,21 @@
  *   3 = + filesystem
  *   4 = full startup
  ***************************************************************************/
+#include <gccore.h>
+
 #include "drivers/ogc/wii/WiiPlatform.h"
+
+static void showStartupCheckpoint(VideoDriver *video, const PixelColor& color)
+{
+    if (!video)
+        return;
+
+    for (int i = 0; i < 180 && SYS_MainLoop(); ++i)
+    {
+        video->clearScreen(color);
+        video->render();
+    }
+}
 
 void WiiPlatform::init(const PlatformConfig& config)
 {
@@ -25,9 +39,15 @@ void WiiPlatform::init(const PlatformConfig& config)
     this->videoDriver = new OgcVideoDriver();
     this->videoDriver->init(config.canvasWidth, config.canvasHeight);
 
+    // If we never see red, the problem is before/inside video setup.
+    showStartupCheckpoint(this->videoDriver, {255, 0, 0, 255});
+
 #if LIBGUI_COMPAT_STAGE >= 2
     this->inputDriver = new OgcInputDriver();
     this->inputDriver->init();
+
+    // If red works but green does not, input startup is the suspect.
+    showStartupCheckpoint(this->videoDriver, {0, 255, 0, 255});
 #endif
 
 #if LIBGUI_COMPAT_STAGE >= 3
