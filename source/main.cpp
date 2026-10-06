@@ -3,6 +3,7 @@
 
 #include "drivers/ogc/wii/WiiPlatform.h"
 #include "libgui/Gui.h"
+#include "font_ttf.h"
 
 WiiPlatform platformInstance;
 Platform* platform = &platformInstance;
@@ -51,16 +52,19 @@ int main(int, char **)
 
     showColour({255, 255, 0, 255}, 120);
 
-    // GuiText::draw() dereferences this global renderer first.
-    // Check it directly before attempting any font/GX work.
+    // This is the initialization performed by libgui's normal demo
+    // application before any GuiText is drawn.
+    fontSystem = new GuiTextRenderer(
+        font_ttf,
+        font_ttf_size,
+        platform->getVideo()->getGlyphRenderer(),
+        platform->getVideo()->getUIScale());
+
+    // Confirm that the renderer was constructed before attempting draw().
     if (fontSystem == nullptr)
-    {
         showColour({255, 0, 255, 255}, 180);
-    }
     else
-    {
         showColour({0, 255, 255, 255}, 180);
-    }
 
     while (SYS_MainLoop())
     {
@@ -70,6 +74,9 @@ int main(int, char **)
         platform->getVideo()->clearScreen({0, 0, 0, 255});
         platform->getVideo()->render();
     }
+
+    delete fontSystem;
+    fontSystem = nullptr;
 
     return 0;
 }
