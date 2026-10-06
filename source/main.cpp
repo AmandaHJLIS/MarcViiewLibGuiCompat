@@ -47,18 +47,18 @@ int main(int, char **)
 
     showColour({0, 0, 255, 255}, 120);
 
-    // Test only setPosition().
     text.setPosition(0, 200);
 
-    // setPosition() returned successfully.
     showColour({255, 255, 0, 255}, 120);
 
+    // Draw only the GuiText. No other GUI elements are involved.
     while (SYS_MainLoop())
     {
         if (homePressed())
             break;
 
         platform->getVideo()->clearScreen({0, 0, 0, 255});
+        text.draw();
         platform->getVideo()->render();
     }
 
