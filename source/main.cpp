@@ -31,7 +31,13 @@ int main(int, char **)
     // GuiText construction returned successfully.
     showColour({0, 255, 0, 255}, 120);
 
-    // Deliberately do not call setSize(), setPosition(), or draw().
+    // Test only setSize().
+    text.setSize(640, 80);
+
+    // setSize() returned successfully.
+    showColour({0, 0, 255, 255}, 120);
+
+    // Leave this test without calling setPosition() or draw().
     while (SYS_MainLoop())
     {
         platform->getVideo()->clearScreen({0, 0, 0, 255});
