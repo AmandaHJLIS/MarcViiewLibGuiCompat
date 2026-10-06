@@ -1,61 +1,26 @@
 #include <gccore.h>
 
-#include "drivers/ogc/OgcVideoDriver.h"
-#include "drivers/ogc/OgcInputDriver.h"
-#include "drivers/Platform.h"
-#include "drivers/InputController.h"
+#include "drivers/ogc/wii/WiiPlatform.h"
 
-static OgcVideoDriver video;
-static OgcInputDriver input;
-
-class DiagnosticPlatform : public Platform
-{
-public:
-    void init(const PlatformConfig&) override {}
-    void requestExit() override {}
-    AudioDriver* getAudio() override { return nullptr; }
-    VideoDriver* getVideo() override { return &video; }
-    InputDriver* getInput() override { return &input; }
-    FileSystemDriver* getFileSystem() override { return nullptr; }
-    ThreadDriver* getThread() override { return nullptr; }
-    Logger* getLogger() override { return nullptr; }
-    SystemEvent getSystemEvent() override { return SystemEvent::None; }
-    Status getStatus() const override { return Status::Running; }
-    void triggerExit() override {}
-protected:
-    void shutdown() override {}
-};
-
-static DiagnosticPlatform diagnosticPlatform;
-Platform* platform = &diagnosticPlatform;
-
-static void showColour(const PixelColor& color, int frames)
-{
-    for (int i = 0; i < frames && SYS_MainLoop(); ++i) {
-        video.clearScreen(color);
-        video.render();
-    }
-}
+WiiPlatform platformInstance;
+Platform* platform = &platformInstance;
 
 int main(int, char **)
 {
-    video.init(640, 480);
-    showColour({255, 0, 0, 255}, 180);
+    PlatformConfig config;
+    config.canvasWidth = 640;
+    config.canvasHeight = 480;
 
-    input.init();
-    showColour({0, 255, 0, 255}, 180);
+    platform->init(config);
 
-    while (SYS_MainLoop()) {
-        input.update();
-
-        if (controller[0]->isPressed(INPUT_BTN_HOME))
-            break;
-
-        video.clearScreen({0, 0, 255, 255});
-        video.render();
+    // Reaching this loop means WiiPlatform startup returned after
+    // the video/input checkpoints in WiiPlatformCompat.cpp.
+    while (SYS_MainLoop())
+    {
+        platform->getVideo()->clearScreen({0, 0, 255, 255});
+        platform->getVideo()->render();
     }
 
-    input.shutdown();
-    video.shutdown();
+    platform->shutdown();
     return 0;
 }
