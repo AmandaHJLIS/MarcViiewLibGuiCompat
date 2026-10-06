@@ -3,7 +3,6 @@
 #---------------------------------------------------------------------------------
 .SUFFIXES:
 
-# Capture the repository root before the devkit rules add their own makefiles.
 PROJECT_DIR := $(abspath $(dir $(firstword $(MAKEFILE_LIST))))
 
 ifeq ($(strip $(DEVKITPPC)),)
@@ -12,8 +11,6 @@ endif
 
 include $(DEVKITPPC)/wii_rules
 
-# libgui is kept outside this test repository so the test tracks the upstream
-# framework without copying its full source tree into MarcViiewLibGuiTest.
 LIBGUI_DIR ?= $(PROJECT_DIR)/../libgui
 
 ifeq ($(wildcard $(LIBGUI_DIR)/source/libgui/Gui.h),)
@@ -41,22 +38,16 @@ export FREETYPE_LIBS := `$(DEVKITPRO)/portlibs/ppc/bin/powerpc-eabi-pkg-config -
 CFLAGS = -g -O2 -Wall -Wextra $(MACHDEP) $(INCLUDE) $(FREETYPE_CFLAGS)
 LIBGUI_COMPAT_STAGE ?= 2
 RAW_VIDEO_TEST ?= 0
-DIRECT_INPUT_TEST ?= 1
+DIRECT_INPUT_TEST ?= 0
 DIRECT_VIDEO_TEST ?= 0
-VIDEO_DRIVER_TEST ?= 0
+VIDEO_DRIVER_TEST ?= 1
 
-# Startup diagnostic stages:
-# 1 = thread + video only
-# 2 = + Wii/GameCube input
-# 3 = + Wii filesystem/USB/DVD
-# 4 = full startup with logging
 CXXFLAGS = $(CFLAGS) -std=c++11 -DVIDEO_WaitForFlush=VIDEO_WaitVSync -DLIBGUI_COMPAT_STAGE=$(LIBGUI_COMPAT_STAGE)
 LDFLAGS = -g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 
 LIBS := -ldi -liso9660 -lpng -lz -lfat -lwiiuse -lbte -lasnd -logc -lvorbisidec -logg $(FREETYPE_LIBS)
 
 ifneq ($(BUILD),$(notdir $(CURDIR)))
-
 export OUTPUT := $(CURDIR)/$(TARGET)
 export VPATH := $(SOURCES) $(LIBGUI_DIR)/data/images $(LIBGUI_DIR)/data/fonts $(LIBGUI_DIR)/data/sounds $(LIBGUI_DIR)/data/lang
 export DEPSDIR := $(CURDIR)/$(BUILD)
@@ -76,9 +67,6 @@ endif
 sFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 SFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
 
-# libgui's filelist.h expects these generated resource headers to exist.
-# Generate them for compilation, but do not link the bundled resource objects
-# into the minimal hardware diagnostic.
 ASSET_FILES := $(notdir $(wildcard $(LIBGUI_DIR)/data/images/*.png)) \
 	$(notdir $(wildcard $(LIBGUI_DIR)/data/fonts/*.ttf)) \
 	$(notdir $(wildcard $(LIBGUI_DIR)/data/sounds/*.ogg)) \
