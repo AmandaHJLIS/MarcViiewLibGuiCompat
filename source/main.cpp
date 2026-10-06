@@ -51,14 +51,23 @@ int main(int, char **)
 
     showColour({255, 255, 0, 255}, 120);
 
-    // Draw only the GuiText. No other GUI elements are involved.
+    // GuiText::draw() dereferences this global renderer first.
+    // Check it directly before attempting any font/GX work.
+    if (fontSystem == nullptr)
+    {
+        showColour({255, 0, 255, 255}, 180);
+    }
+    else
+    {
+        showColour({0, 255, 255, 255}, 180);
+    }
+
     while (SYS_MainLoop())
     {
         if (homePressed())
             break;
 
         platform->getVideo()->clearScreen({0, 0, 0, 255});
-        text.draw();
         platform->getVideo()->render();
     }
 
