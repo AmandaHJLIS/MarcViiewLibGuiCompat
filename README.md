@@ -108,3 +108,7 @@ If the compatibility layer proves reliable, the necessary adaptations can be bro
 **Experimental — hardware compatibility testing**
 
 The project currently builds successfully against the legacy libogc environment and has been successfully tested under Dolphin. Real Wii hardware testing is the next validation stage.
+
+## Credits
+
+dborth/libgui — for providing the necessary UI framework, later being used as a compatibility layer.
